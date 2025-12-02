@@ -76,7 +76,7 @@ class USTaxCalculator2025
     public function enqueue_assets()
     {
         $handle = 'ustc2025-styles';
-        $css = '.ustc2025-card{background:#fff;border:1px solid #e0e0e0;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.08);padding:16px;margin-bottom:16px;font-family:Arial, sans-serif}.ustc2025-form input[type=number],.ustc2025-form select{width:100%;padding:10px;border:1px solid #ccc;border-radius:4px;margin-bottom:12px;box-sizing:border-box}.ustc2025-button{background:#5f2f88;color:#fff;border:none;padding:10px 16px;border-radius:4px;cursor:pointer}.ustc2025-button:disabled{opacity:.6;cursor:not-allowed}.ustc2025-reset{background:#e0e0e0;color:#333;border:none;padding:10px 16px;border-radius:4px;margin-left:8px;cursor:pointer}.ustc2025-results{display:flex;gap:16px;flex-wrap:wrap}.ustc2025-column{flex:1;min-width:250px}.ustc2025-owe{color:#e53935;font-weight:bold}.ustc2025-refund{color:#388e3c;font-weight:bold}.ustc2025-tab-nav a{margin-right:12px;text-decoration:none;padding:8px 12px;border-radius:4px;border:1px solid #ccc;background:#f5f5f5}.ustc2025-tab-nav a.active{background:#5f2f88;color:#fff;border-color:#5f2f88}.ustc2025-breakdown{background:#fafafa;border:1px solid #e0e0e0;border-radius:4px;padding:10px;margin-top:10px;}.ustc2025-header{font-size:18px;font-weight:600;margin-bottom:8px;color:#5f2f88}.ustc2025-row{display:flex;gap:10px;flex-wrap:wrap}.ustc2025-row .ustc2025-col{flex:1;min-width:200px}';
+        $css = '.ustc2025-wrapper{font-family:Arial,sans-serif;background:#f8f7fb;padding:8px;border-radius:10px}.ustc2025-card{background:#fff;border:1px solid #e6e2ed;border-radius:10px;box-shadow:0 4px 16px rgba(17,16,62,0.07);padding:20px;margin-bottom:18px}.ustc2025-form-header{font-size:20px;font-weight:600;margin:0 0 12px;color:#2b2341}.ustc2025-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}.ustc2025-field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:#3a3352}.ustc2025-field input[type=number],.ustc2025-field select{width:100%;padding:12px 14px;border:1px solid #d6d1df;border-radius:8px;font-size:14px;color:#2b2341;background:#fff;box-sizing:border-box;transition:border-color .2s,box-shadow .2s}.ustc2025-field input[type=number]:focus,.ustc2025-field select:focus{outline:none;border-color:#5f2f88;box-shadow:0 0 0 2px rgba(95,47,136,0.12)}.ustc2025-actions{margin-top:8px;display:flex;gap:10px;align-items:center}.ustc2025-button{background:#5f2f88;color:#fff;border:none;padding:12px 18px;border-radius:8px;cursor:pointer;font-weight:600;transition:transform .1s ease,box-shadow .2s}.ustc2025-button:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(95,47,136,0.25)}.ustc2025-button:disabled{opacity:.6;cursor:not-allowed}.ustc2025-reset{background:transparent;color:#5f2f88;border:1px solid #c9c2d7;padding:12px 18px;border-radius:8px;cursor:pointer}.ustc2025-results{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.ustc2025-column h3{margin-top:0;color:#2b2341;font-size:16px}.ustc2025-column p{margin:6px 0;font-size:14px;color:#4a425c}.ustc2025-owe{color:#e53935;font-weight:700}.ustc2025-refund{color:#2e8b57;font-weight:700}.ustc2025-tab-nav a{margin-right:12px;text-decoration:none;padding:8px 12px;border-radius:6px;border:1px solid #ccc;background:#f5f5f5}.ustc2025-tab-nav a.active{background:#5f2f88;color:#fff;border-color:#5f2f88}.ustc2025-breakdown{background:#fafafa;border:1px solid #e0e0e0;border-radius:8px;padding:12px;margin-top:12px}.ustc2025-header{font-size:18px;font-weight:600;margin-bottom:8px;color:#5f2f88}.ustc2025-row{display:flex;gap:10px;flex-wrap:wrap}.ustc2025-row .ustc2025-col{flex:1;min-width:200px}';
         wp_register_style($handle, false);
         wp_enqueue_style($handle);
         wp_add_inline_style($handle, $css);
@@ -232,25 +232,30 @@ class USTaxCalculator2025
         $gross = isset($_POST['GrossIncome']) ? floatval($_POST['GrossIncome']) : '';
         $fwh = isset($_POST['FederalWithholding']) ? floatval($_POST['FederalWithholding']) : '';
         $swh = isset($_POST['StateWithholding']) ? floatval($_POST['StateWithholding']) : '';
-        $state = isset($_POST['state']) ? sanitize_text_field($_POST['state']) : 'Arizona';
+        $state = isset($_POST['state']) ? sanitize_text_field($_POST['state']) : '';
 
         ob_start();
+        echo '<div class="ustc2025-wrapper">';
         echo '<div class="ustc2025-card ustc2025-form">';
+        echo '<div class="ustc2025-form-header">' . esc_html__('US Tax Refund kalkulator', 'ustc2025') . '</div>';
         echo '<form method="post">';
-        echo '<label>' . esc_html__('Total income (USD)', 'ustc2025') . '</label>'; 
-        echo '<input type="number" name="GrossIncome" step="0.01" min="0" required value="' . esc_attr($gross) . '" />';
-        echo '<label>' . esc_html__('Federal withholding (USD)', 'ustc2025') . '</label>'; 
-        echo '<input type="number" name="FederalWithholding" step="0.01" min="0" required value="' . esc_attr($fwh) . '" />';
-        echo '<label>' . esc_html__('State', 'ustc2025') . '</label>';
-        echo '<select name="state">';
+        echo '<div class="ustc2025-form-grid">';
+        echo '<div class="ustc2025-field"><label>' . esc_html__('Total income (USD)', 'ustc2025') . '</label>';
+        echo '<input type="number" name="GrossIncome" step="0.01" min="0" required value="' . esc_attr($gross) . '" /></div>';
+        echo '<div class="ustc2025-field"><label>' . esc_html__('Federal withholding (USD)', 'ustc2025') . '</label>';
+        echo '<input type="number" name="FederalWithholding" step="0.01" min="0" required value="' . esc_attr($fwh) . '" /></div>';
+        echo '<div class="ustc2025-field"><label>' . esc_html__('State', 'ustc2025') . '</label>';
+        echo '<select name="state" required>';
+        echo '<option value="" disabled ' . selected('', $state, false) . '>' . esc_html__('— Odaberite državu —', 'ustc2025') . '</option>';
         foreach ($this->states as $st) {
             echo '<option value="' . esc_attr($st) . '"' . selected($state, $st, false) . '>' . esc_html($st) . '</option>';
         }
-        echo '</select>';
-        echo '<label>' . esc_html__('State withholding (USD)', 'ustc2025') . '</label>';
-        echo '<input type="number" name="StateWithholding" step="0.01" min="0" value="' . esc_attr($swh) . '" />';
-        echo '<div style="margin-top:10px;">';
-        echo '<button class="ustc2025-button" type="submit" name="ustc_calculate" value="1">' . esc_html__('Calculate', 'ustc2025') . '</button>';
+        echo '</select></div>';
+        echo '<div class="ustc2025-field"><label>' . esc_html__('State withholding (USD)', 'ustc2025') . '</label>';
+        echo '<input type="number" name="StateWithholding" step="0.01" min="0" value="' . esc_attr($swh) . '" /></div>';
+        echo '</div>';
+        echo '<div class="ustc2025-actions">';
+        echo '<button class="ustc2025-button" type="submit" name="ustc_calculate" value="1">' . esc_html__('Izračunaj povrat', 'ustc2025') . '</button>';
         echo '<button class="ustc2025-reset" type="reset">' . esc_html__('Reset', 'ustc2025') . '</button>';
         echo '</div>';
         echo '</form>';
@@ -262,10 +267,12 @@ class USTaxCalculator2025
             $state_resident = $this->calculate_state($state, $gross, $swh, 'resident', $state_settings[$state]);
             $state_nonresident = $this->calculate_state($state, $gross, $swh, 'nonresident', $state_settings[$state]);
             echo '<div class="ustc2025-results">';
-            echo $this->render_result_column(__('Resident', 'ustc2025'), $federal_resident, $state_resident);
-            echo $this->render_result_column(__('Non-resident', 'ustc2025'), $federal_nonresident, $state_nonresident);
+            echo $this->render_result_column(__('Rezident', 'ustc2025'), $federal_resident, $state_resident);
+            echo $this->render_result_column(__('Nerezident', 'ustc2025'), $federal_nonresident, $state_nonresident);
             echo '</div>';
         }
+
+        echo '</div>';
 
         return ob_get_clean();
     }
