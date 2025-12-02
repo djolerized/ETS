@@ -13,25 +13,25 @@ if (!defined('ABSPATH')) {
 class USTaxCalculator2025
 {
     private $option_federal = 'ustc2025_federal_settings';
-    private $option_state = 'ustc2025_state_settings';
-    private $states = [
-        'Arizona',
-        'California',
-        'Colorado',
-        'Delaware',
-        'District of Columbia',
-        'Maine',
-        'Maryland',
-        'Massachusetts',
-        'Michigan',
-        'Missouri',
-        'New Jersey',
-        'New York',
-        'North Carolina',
-        'Rhode Island',
-        'South Carolina',
-        'Virginia',
-        'Wisconsin'
+    private $option_state = 'us_tax_calculator_states_2025';
+    private $states_info = [
+        ['code' => 'AZ', 'name' => 'Arizona'],
+        ['code' => 'CA', 'name' => 'California'],
+        ['code' => 'CO', 'name' => 'Colorado'],
+        ['code' => 'DC', 'name' => 'District of Columbia'],
+        ['code' => 'DE', 'name' => 'Delaware'],
+        ['code' => 'ME', 'name' => 'Maine'],
+        ['code' => 'MD', 'name' => 'Maryland'],
+        ['code' => 'MA', 'name' => 'Massachusetts'],
+        ['code' => 'MI', 'name' => 'Michigan'],
+        ['code' => 'MO', 'name' => 'Missouri'],
+        ['code' => 'NJ', 'name' => 'New Jersey'],
+        ['code' => 'NY', 'name' => 'New York'],
+        ['code' => 'NC', 'name' => 'North Carolina'],
+        ['code' => 'RI', 'name' => 'Rhode Island'],
+        ['code' => 'SC', 'name' => 'South Carolina'],
+        ['code' => 'VA', 'name' => 'Virginia'],
+        ['code' => 'WI', 'name' => 'Wisconsin'],
     ];
 
     public function __construct()
@@ -53,30 +53,212 @@ class USTaxCalculator2025
     private function defaults_states()
     {
         return [
-            'Maryland' => ['deduction' => 6550],
-            'New Jersey' => ['exemption' => 1000],
-            'Massachusetts' => ['exemption' => 1000, 'rate' => 0.05],
-            'New York' => ['deduction' => 9000],
-            'Delaware' => ['deduction' => 3250, 'personal_tax_credit' => 110, 'full_refund_threshold' => 9400],
-            'California' => ['deduction' => 3250, 'personal_tax_credit' => 153],
-            'Michigan' => ['deduction' => 5800, 'rate' => 0.0425],
-            'Missouri' => ['deduction' => 15750],
-            'North Carolina' => ['deduction' => 12750, 'rate' => 0.0425],
-            'South Carolina' => ['deduction' => 14600],
-            'Wisconsin' => ['deduction_resident' => 14260, 'deduction_nonresident' => 700],
-            'Colorado' => ['deduction' => 15600, 'rate' => 0.044],
-            'Maine' => ['deduction_resident' => 20150, 'deduction_nonresident' => 5150],
-            'Arizona' => ['deduction' => 15600, 'rate' => 0.044],
-            'Virginia' => ['deduction' => 15600],
-            'Rhode Island' => ['deduction_resident' => 16000, 'deduction_nonresident' => 5100],
-            'District of Columbia' => [],
+            'AZ' => [
+                'state_deduction' => 15600,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 4.4,
+                'brackets' => [],
+            ],
+            'CA' => [
+                'state_deduction' => 3250,
+                'personal_credit' => 153,
+                'calculation_mode' => 'progressive_brackets',
+                'flat_rate' => '',
+                'brackets' => [
+                    ['min_income' => 0, 'max_income' => 11079, 'base_tax' => 0, 'rate' => 1],
+                    ['min_income' => 11079, 'max_income' => 26264, 'base_tax' => 110.79, 'rate' => 2],
+                    ['min_income' => 26264, 'max_income' => 41452, 'base_tax' => 414.49, 'rate' => 4],
+                    ['min_income' => 41452, 'max_income' => 57542, 'base_tax' => 1022.01, 'rate' => 6],
+                    ['min_income' => 57542, 'max_income' => 72724, 'base_tax' => 1987.41, 'rate' => 8],
+                    ['min_income' => 72724, 'max_income' => 371479, 'base_tax' => 3201.97, 'rate' => 9.3],
+                    ['min_income' => 371479, 'max_income' => 445771, 'base_tax' => 30986.19, 'rate' => 10.3],
+                    ['min_income' => 445771, 'max_income' => 742953, 'base_tax' => 38638.27, 'rate' => 11.3],
+                    ['min_income' => 742953, 'max_income' => '', 'base_tax' => 72219.84, 'rate' => 12.3],
+                ],
+            ],
+            'CO' => [
+                'state_deduction' => 15600,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 4.4,
+                'brackets' => [],
+            ],
+            'DC' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 0,
+                'brackets' => [],
+            ],
+            'DE' => [
+                'state_deduction' => 3250,
+                'personal_credit' => 110,
+                'calculation_mode' => 'progressive_brackets',
+                'flat_rate' => '',
+                'full_refund_threshold' => 9400,
+                'brackets' => [
+                    ['min_income' => 0, 'max_income' => 2000, 'base_tax' => 0, 'rate' => 0],
+                    ['min_income' => 2000, 'max_income' => 5000, 'base_tax' => 0, 'rate' => 2.2],
+                    ['min_income' => 5000, 'max_income' => 10000, 'base_tax' => 66, 'rate' => 3.9],
+                    ['min_income' => 10000, 'max_income' => 20000, 'base_tax' => 261, 'rate' => 4.8],
+                    ['min_income' => 20000, 'max_income' => 25000, 'base_tax' => 741, 'rate' => 5.2],
+                    ['min_income' => 25000, 'max_income' => 60000, 'base_tax' => 1001, 'rate' => 5.55],
+                    ['min_income' => 60000, 'max_income' => '', 'base_tax' => 2943.5, 'rate' => 6.6],
+                ],
+            ],
+            'ME' => [
+                'state_deduction' => 20150,
+                'personal_credit' => 0,
+                'calculation_mode' => 'progressive_brackets',
+                'flat_rate' => '',
+                'brackets' => [
+                    ['min_income' => 0, 'max_income' => 26800, 'base_tax' => 0, 'rate' => 5.8],
+                    ['min_income' => 26800, 'max_income' => 63450, 'base_tax' => 1554, 'rate' => 6.75],
+                    ['min_income' => 63450, 'max_income' => '', 'base_tax' => 4028, 'rate' => 7.15],
+                ],
+            ],
+            'MD' => [
+                'state_deduction' => 6550,
+                'personal_credit' => 0,
+                'calculation_mode' => 'progressive_brackets',
+                'flat_rate' => '',
+                'brackets' => [
+                    ['min_income' => 0, 'max_income' => 1000, 'base_tax' => 0, 'rate' => 2],
+                    ['min_income' => 1000, 'max_income' => 2000, 'base_tax' => 20, 'rate' => 3],
+                    ['min_income' => 2000, 'max_income' => 3000, 'base_tax' => 50, 'rate' => 4],
+                    ['min_income' => 3000, 'max_income' => 100000, 'base_tax' => 90, 'rate' => 4.75],
+                    ['min_income' => 100000, 'max_income' => 125000, 'base_tax' => 4568.25, 'rate' => 5],
+                    ['min_income' => 125000, 'max_income' => 150000, 'base_tax' => 5818.25, 'rate' => 5.25],
+                    ['min_income' => 150000, 'max_income' => 250000, 'base_tax' => 7156.5, 'rate' => 5.5],
+                    ['min_income' => 250000, 'max_income' => 500000, 'base_tax' => 12606.5, 'rate' => 5.75],
+                    ['min_income' => 500000, 'max_income' => 1000000, 'base_tax' => 26681.25, 'rate' => 6.25],
+                    ['min_income' => 1000000, 'max_income' => '', 'base_tax' => 57806.25, 'rate' => 6.5],
+                ],
+            ],
+            'MA' => [
+                'state_deduction' => 1000,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 5,
+                'brackets' => [],
+            ],
+            'MI' => [
+                'state_deduction' => 5800,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 4.25,
+                'brackets' => [],
+            ],
+            'MO' => [
+                'state_deduction' => 15750,
+                'personal_credit' => 0,
+                'calculation_mode' => 'progressive_brackets',
+                'flat_rate' => '',
+                'brackets' => [
+                    ['min_income' => 0, 'max_income' => 1313, 'base_tax' => 0, 'rate' => 0],
+                    ['min_income' => 1313, 'max_income' => 2626, 'base_tax' => 0, 'rate' => 2],
+                    ['min_income' => 2626, 'max_income' => 3939, 'base_tax' => 26.26, 'rate' => 2.5],
+                    ['min_income' => 3939, 'max_income' => 5252, 'base_tax' => 58.44, 'rate' => 3],
+                    ['min_income' => 5252, 'max_income' => 6565, 'base_tax' => 97.89, 'rate' => 3.5],
+                    ['min_income' => 6565, 'max_income' => 7878, 'base_tax' => 144.91, 'rate' => 4],
+                    ['min_income' => 7878, 'max_income' => 9191, 'base_tax' => 196.91, 'rate' => 4.5],
+                    ['min_income' => 9191, 'max_income' => '', 'base_tax' => 251.66, 'rate' => 4.7],
+                ],
+            ],
+            'NJ' => [
+                'state_deduction' => 1000,
+                'personal_credit' => 0,
+                'calculation_mode' => 'progressive_brackets',
+                'flat_rate' => '',
+                'brackets' => [
+                    ['min_income' => 0, 'max_income' => 10000, 'base_tax' => 0, 'rate' => 0],
+                    ['min_income' => 10000, 'max_income' => 20000, 'base_tax' => 0, 'rate' => 1.4],
+                    ['min_income' => 20000, 'max_income' => 35000, 'base_tax' => 280, 'rate' => 1.75],
+                    ['min_income' => 35000, 'max_income' => 40000, 'base_tax' => 542.5, 'rate' => 3.5],
+                    ['min_income' => 40000, 'max_income' => 75000, 'base_tax' => 717.5, 'rate' => 5.525],
+                    ['min_income' => 75000, 'max_income' => 500000, 'base_tax' => 2651.25, 'rate' => 6.37],
+                    ['min_income' => 500000, 'max_income' => 1000000, 'base_tax' => 29723.75, 'rate' => 8.97],
+                    ['min_income' => 1000000, 'max_income' => '', 'base_tax' => 74573.75, 'rate' => 10.75],
+                ],
+            ],
+            'NY' => [
+                'state_deduction' => 9000,
+                'personal_credit' => 0,
+                'calculation_mode' => 'progressive_brackets',
+                'flat_rate' => '',
+                'brackets' => [
+                    ['min_income' => 0, 'max_income' => 8500, 'base_tax' => 0, 'rate' => 4],
+                    ['min_income' => 8500, 'max_income' => 11700, 'base_tax' => 340, 'rate' => 4.5],
+                    ['min_income' => 11700, 'max_income' => 13900, 'base_tax' => 484, 'rate' => 5.25],
+                    ['min_income' => 13900, 'max_income' => 80650, 'base_tax' => 600, 'rate' => 5.5],
+                    ['min_income' => 80650, 'max_income' => 215400, 'base_tax' => 4271, 'rate' => 6],
+                    ['min_income' => 215400, 'max_income' => 1077550, 'base_tax' => 12356, 'rate' => 6.85],
+                    ['min_income' => 1077550, 'max_income' => 5000000, 'base_tax' => 71413, 'rate' => 9.65],
+                    ['min_income' => 5000000, 'max_income' => 25000000, 'base_tax' => 449929, 'rate' => 10.3],
+                    ['min_income' => 25000000, 'max_income' => '', 'base_tax' => 2509929, 'rate' => 10.9],
+                ],
+            ],
+            'NC' => [
+                'state_deduction' => 12750,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 4.25,
+                'brackets' => [],
+            ],
+            'RI' => [
+                'state_deduction' => 16000,
+                'personal_credit' => 0,
+                'calculation_mode' => 'progressive_brackets',
+                'flat_rate' => '',
+                'brackets' => [
+                    ['min_income' => 0, 'max_income' => 79900, 'base_tax' => 0, 'rate' => 3.75],
+                    ['min_income' => 79900, 'max_income' => 181650, 'base_tax' => 2996.25, 'rate' => 4.75],
+                    ['min_income' => 181650, 'max_income' => '', 'base_tax' => 7829.38, 'rate' => 5.99],
+                ],
+            ],
+            'SC' => [
+                'state_deduction' => 14600,
+                'personal_credit' => 0,
+                'calculation_mode' => 'progressive_brackets',
+                'flat_rate' => '',
+                'brackets' => [
+                    ['min_income' => 0, 'max_income' => 3560, 'base_tax' => 0, 'rate' => 0],
+                    ['min_income' => 3560, 'max_income' => 17830, 'base_tax' => 0, 'rate' => 3],
+                    ['min_income' => 17830, 'max_income' => '', 'base_tax' => 428.1, 'rate' => 6],
+                ],
+            ],
+            'VA' => [
+                'state_deduction' => 15600,
+                'personal_credit' => 0,
+                'calculation_mode' => 'progressive_brackets',
+                'flat_rate' => '',
+                'brackets' => [
+                    ['min_income' => 0, 'max_income' => 3000, 'base_tax' => 0, 'rate' => 2],
+                    ['min_income' => 3000, 'max_income' => 5000, 'base_tax' => 60, 'rate' => 3],
+                    ['min_income' => 5000, 'max_income' => 17000, 'base_tax' => 120, 'rate' => 5],
+                    ['min_income' => 17000, 'max_income' => '', 'base_tax' => 720, 'rate' => 5.75],
+                ],
+            ],
+            'WI' => [
+                'state_deduction' => 14260,
+                'personal_credit' => 0,
+                'calculation_mode' => 'progressive_brackets',
+                'flat_rate' => '',
+                'brackets' => [
+                    ['min_income' => 0, 'max_income' => 14680, 'base_tax' => 0, 'rate' => 3.5],
+                    ['min_income' => 14680, 'max_income' => 50480, 'base_tax' => 513.8, 'rate' => 4.4],
+                    ['min_income' => 50480, 'max_income' => 323290, 'base_tax' => 2089, 'rate' => 5.3],
+                    ['min_income' => 323290, 'max_income' => '', 'base_tax' => 16547.93, 'rate' => 7.65],
+                ],
+            ],
         ];
     }
 
     public function enqueue_assets()
     {
         $handle = 'ustc2025-styles';
-        $css = '.ustc2025-card{background:#fff;border:1px solid #e0e0e0;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.08);padding:16px;margin-bottom:16px;font-family:Arial, sans-serif}.ustc2025-form input[type=number],.ustc2025-form select{width:100%;padding:10px;border:1px solid #ccc;border-radius:4px;margin-bottom:12px;box-sizing:border-box}.ustc2025-button{background:#5f2f88;color:#fff;border:none;padding:10px 16px;border-radius:4px;cursor:pointer}.ustc2025-button:disabled{opacity:.6;cursor:not-allowed}.ustc2025-reset{background:#e0e0e0;color:#333;border:none;padding:10px 16px;border-radius:4px;margin-left:8px;cursor:pointer}.ustc2025-results{display:flex;gap:16px;flex-wrap:wrap}.ustc2025-column{flex:1;min-width:250px}.ustc2025-owe{color:#e53935;font-weight:bold}.ustc2025-refund{color:#388e3c;font-weight:bold}.ustc2025-tab-nav a{margin-right:12px;text-decoration:none;padding:8px 12px;border-radius:4px;border:1px solid #ccc;background:#f5f5f5}.ustc2025-tab-nav a.active{background:#5f2f88;color:#fff;border-color:#5f2f88}.ustc2025-breakdown{background:#fafafa;border:1px solid #e0e0e0;border-radius:4px;padding:10px;margin-top:10px;}.ustc2025-header{font-size:18px;font-weight:600;margin-bottom:8px;color:#5f2f88}.ustc2025-row{display:flex;gap:10px;flex-wrap:wrap}.ustc2025-row .ustc2025-col{flex:1;min-width:200px}';
+        $css = '.ustc2025-wrapper{font-family:Arial,sans-serif;background:#f8f7fb;padding:8px;border-radius:10px}.ustc2025-card{background:#fff;border:1px solid #e6e2ed;border-radius:10px;box-shadow:0 4px 16px rgba(17,16,62,0.07);padding:20px;margin-bottom:18px}.ustc2025-form-header{font-size:20px;font-weight:600;margin:0 0 12px;color:#2b2341}.ustc2025-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}.ustc2025-field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:#3a3352}.ustc2025-field input[type=number],.ustc2025-field select{width:100%;padding:12px 14px;border:1px solid #d6d1df;border-radius:8px;font-size:14px;color:#2b2341;background:#fff;box-sizing:border-box;transition:border-color .2s,box-shadow .2s}.ustc2025-field input[type=number]:focus,.ustc2025-field select:focus{outline:none;border-color:#5f2f88;box-shadow:0 0 0 2px rgba(95,47,136,0.12)}.ustc2025-actions{margin-top:8px;display:flex;gap:10px;align-items:center}.ustc2025-button{background:#5f2f88;color:#fff;border:none;padding:12px 18px;border-radius:8px;cursor:pointer;font-weight:600;transition:transform .1s ease,box-shadow .2s}.ustc2025-button:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(95,47,136,0.25)}.ustc2025-button:disabled{opacity:.6;cursor:not-allowed}.ustc2025-reset{background:transparent;color:#5f2f88;border:1px solid #c9c2d7;padding:12px 18px;border-radius:8px;cursor:pointer}.ustc2025-results{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.ustc2025-column h3{margin-top:0;color:#2b2341;font-size:16px}.ustc2025-column p{margin:6px 0;font-size:14px;color:#4a425c}.ustc2025-owe{color:#e53935;font-weight:700}.ustc2025-refund{color:#2e8b57;font-weight:700}.ustc2025-tab-nav a{margin-right:12px;text-decoration:none;padding:8px 12px;border-radius:6px;border:1px solid #ccc;background:#f5f5f5}.ustc2025-tab-nav a.active{background:#5f2f88;color:#fff;border-color:#5f2f88}.ustc2025-breakdown{background:#fafafa;border:1px solid #e0e0e0;border-radius:8px;padding:12px;margin-top:12px}.ustc2025-header{font-size:18px;font-weight:600;margin-bottom:8px;color:#5f2f88}.ustc2025-row{display:flex;gap:10px;flex-wrap:wrap}.ustc2025-row .ustc2025-col{flex:1;min-width:200px}';
         wp_register_style($handle, false);
         wp_enqueue_style($handle);
         wp_add_inline_style($handle, $css);
@@ -98,7 +280,7 @@ class USTaxCalculator2025
     public function register_settings()
     {
         register_setting('ustc2025_federal_group', $this->option_federal);
-        register_setting('ustc2025_state_group', $this->option_state);
+        register_setting('ustc2025_state_group', $this->option_state, ['sanitize_callback' => [$this, 'sanitize_state_settings']]);
     }
 
     private function get_federal_settings()
@@ -110,7 +292,71 @@ class USTaxCalculator2025
     private function get_state_settings()
     {
         $saved = get_option($this->option_state, []);
-        return wp_parse_args($saved, $this->defaults_states());
+        $defaults = $this->defaults_states();
+        $merged = [];
+        foreach ($this->states_info as $state) {
+            $code = $state['code'];
+            $merged[$code] = isset($saved[$code]) ? wp_parse_args($saved[$code], $defaults[$code]) : $defaults[$code];
+        }
+        return $merged;
+    }
+
+    public function sanitize_state_settings($input)
+    {
+        $defaults = $this->defaults_states();
+        $clean = [];
+        foreach ($this->states_info as $state) {
+            $code = $state['code'];
+            $state_input = isset($input[$code]) ? $input[$code] : [];
+            $clean[$code] = [
+                'state_deduction' => isset($state_input['state_deduction']) ? floatval($state_input['state_deduction']) : floatval($defaults[$code]['state_deduction']),
+                'personal_credit' => isset($state_input['personal_credit']) ? floatval($state_input['personal_credit']) : floatval($defaults[$code]['personal_credit']),
+                'calculation_mode' => isset($state_input['calculation_mode']) && in_array($state_input['calculation_mode'], ['progressive_brackets', 'flat_rate'], true) ? $state_input['calculation_mode'] : $defaults[$code]['calculation_mode'],
+                'flat_rate' => isset($state_input['flat_rate']) ? floatval($state_input['flat_rate']) : ($defaults[$code]['flat_rate'] === '' ? '' : floatval($defaults[$code]['flat_rate'])),
+                'brackets' => [],
+            ];
+
+            if (!empty($defaults[$code]['full_refund_threshold'])) {
+                $clean[$code]['full_refund_threshold'] = floatval($defaults[$code]['full_refund_threshold']);
+            }
+
+            if (isset($state_input['brackets']) && is_array($state_input['brackets'])) {
+                foreach ($state_input['brackets'] as $row) {
+                    if ($row === null) {
+                        continue;
+                    }
+                    $min = isset($row['min_income']) ? floatval($row['min_income']) : 0;
+                    $max = isset($row['max_income']) && $row['max_income'] !== '' ? floatval($row['max_income']) : '';
+                    $base = isset($row['base_tax']) ? floatval($row['base_tax']) : 0;
+                    $rate = isset($row['rate']) ? floatval($row['rate']) : 0;
+                    $clean[$code]['brackets'][] = [
+                        'min_income' => $min,
+                        'max_income' => $max,
+                        'base_tax' => $base,
+                        'rate' => $rate,
+                    ];
+                }
+            } else {
+                $clean[$code]['brackets'] = isset($defaults[$code]['brackets']) ? $defaults[$code]['brackets'] : [];
+            }
+        }
+        return $clean;
+    }
+
+    private function get_state_code_by_name($name)
+    {
+        foreach ($this->states_info as $state) {
+            if ($state['name'] === $name) {
+                return $state['code'];
+            }
+        }
+        return '';
+    }
+
+    private function get_state_settings_by_name($name, $all_settings)
+    {
+        $code = $this->get_state_code_by_name($name);
+        return isset($all_settings[$code]) ? $all_settings[$code] : [];
     }
 
     public function render_admin_page()
@@ -141,25 +387,125 @@ class USTaxCalculator2025
             echo '</div>';
         } elseif ($active_tab === 'states') {
             $settings = $this->get_state_settings();
+            $state_tab = isset($_GET['state_tab']) ? sanitize_text_field($_GET['state_tab']) : $this->states_info[0]['code'];
             echo '<div class="ustc2025-card">';
+            echo '<div class="ustc2025-header">' . esc_html__('State settings', 'ustc2025') . '</div>';
+            echo '<nav class="ustc2025-tab-nav">';
+            foreach ($this->states_info as $state) {
+                $active = $state_tab === $state['code'] ? 'active' : '';
+                $url = add_query_arg(['page' => 'ustc2025', 'tab' => 'states', 'state_tab' => $state['code']], admin_url('admin.php'));
+                echo '<a class="' . esc_attr($active) . '" href="' . esc_url($url) . '">' . esc_html($state['name']) . '</a>';
+            }
+            echo '</nav>';
             echo '<form method="post" action="options.php">';
             settings_fields('ustc2025_state_group');
-            echo '<div class="ustc2025-header">' . esc_html__('State settings', 'ustc2025') . '</div>';
-            foreach ($this->states as $state) {
-                $state_settings = isset($settings[$state]) ? $settings[$state] : [];
-                echo '<h3>' . esc_html($state) . '</h3>';
-                foreach ($state_settings as $key => $value) {
-                    echo '<p><label>' . esc_html(ucwords(str_replace('_', ' ', $key))) . '</label><br />';
-                    echo '<input type="number" step="0.0001" name="' . esc_attr($this->option_state) . '[' . esc_attr($state) . '][' . esc_attr($key) . ']" value="' . esc_attr($value) . '" /></p>';
+
+            foreach ($this->states_info as $state) {
+                $code = $state['code'];
+                $state_settings = isset($settings[$code]) ? $settings[$code] : [];
+                $style = $state_tab === $code ? '' : 'style="display:none;"';
+                echo '<div class="ustc2025-state-tab" id="ustc-tab-' . esc_attr($code) . '" ' . $style . '>';
+                echo '<h3>' . esc_html($state['name']) . '</h3>';
+                echo '<div class="ustc2025-row">';
+                echo '<div class="ustc2025-col"><label>' . esc_html__('State deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" /></div>';
+                echo '<div class="ustc2025-col"><label>' . esc_html__('Personal credit (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" /></div>';
+                echo '</div>';
+                echo '<div class="ustc2025-row">';
+                echo '<div class="ustc2025-col"><label>' . esc_html__('Calculation mode', 'ustc2025') . '</label><select class="ustc-calculation-mode" data-target="' . esc_attr($code) . '" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][calculation_mode]">';
+                echo '<option value="progressive_brackets"' . selected($state_settings['calculation_mode'], 'progressive_brackets', false) . '>' . esc_html__('Progressive brackets', 'ustc2025') . '</option>';
+                echo '<option value="flat_rate"' . selected($state_settings['calculation_mode'], 'flat_rate', false) . '>' . esc_html__('Flat rate', 'ustc2025') . '</option>';
+                echo '</select></div>';
+                echo '<div class="ustc2025-col ustc-flat-rate" data-state="' . esc_attr($code) . '"><label>' . esc_html__('Flat rate (%)', 'ustc2025') . '</label><input type="number" step="0.0001" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][flat_rate]" value="' . esc_attr($state_settings['flat_rate']) . '" /></div>';
+                echo '</div>';
+
+                echo '<div class="ustc2025-brackets" data-state="' . esc_attr($code) . '">';
+                echo '<h4>' . esc_html__('Tax brackets', 'ustc2025') . '</h4>';
+                echo '<table class="widefat fixed" cellspacing="0">';
+                echo '<thead><tr><th>' . esc_html__('Min income', 'ustc2025') . '</th><th>' . esc_html__('Max income', 'ustc2025') . '</th><th>' . esc_html__('Base tax', 'ustc2025') . '</th><th>' . esc_html__('Rate (%)', 'ustc2025') . '</th><th>' . esc_html__('Actions', 'ustc2025') . '</th></tr></thead>';
+                echo '<tbody>';
+                $index = 0;
+                foreach ($state_settings['brackets'] as $row) {
+                    echo $this->render_bracket_row($code, $index, $row);
+                    $index++;
                 }
+                echo '</tbody>';
+                echo '</table>';
+                echo '<p><button type="button" class="button ustc-add-bracket" data-state="' . esc_attr($code) . '">' . esc_html__('Add bracket', 'ustc2025') . '</button></p>';
+                echo '</div>';
+                echo '</div>';
             }
             submit_button();
             echo '</form>';
+            ob_start();
+            ?>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    function updateMode(state) {
+                        const select = document.querySelector('.ustc-calculation-mode[data-target="' + state + '"]');
+                        const flat = document.querySelector('.ustc-flat-rate[data-state="' + state + '"]');
+                        const brackets = document.querySelector('.ustc2025-brackets[data-state="' + state + '"]');
+                        if (!select) return;
+                        const mode = select.value;
+                        if (mode === 'flat_rate') {
+                            if (flat) flat.style.display = 'block';
+                            if (brackets) brackets.style.display = 'none';
+                        } else {
+                            if (flat) flat.style.display = 'none';
+                            if (brackets) brackets.style.display = 'block';
+                        }
+                    }
+
+                    document.querySelectorAll('.ustc-calculation-mode').forEach(function (sel) {
+                        updateMode(sel.dataset.target);
+                        sel.addEventListener('change', function () {
+                            updateMode(this.dataset.target);
+                        });
+                    });
+
+                    document.body.addEventListener('click', function (e) {
+                        if (e.target.classList.contains('ustc-add-bracket')) {
+                            const state = e.target.dataset.state;
+                            const table = document.querySelector('.ustc2025-brackets[data-state="' + state + '"] tbody');
+                            if (!table) return;
+                            const idx = table.querySelectorAll('tr').length;
+                            const row = document.createElement('tr');
+                            row.innerHTML = '<td><input type="number" step="0.01" name="<?php echo esc_js($this->option_state); ?>[' + state + '][brackets][' + idx + '][min_income]" /></td>' +
+                                '<td><input type="number" step="0.01" name="<?php echo esc_js($this->option_state); ?>[' + state + '][brackets][' + idx + '][max_income]" /></td>' +
+                                '<td><input type="number" step="0.01" name="<?php echo esc_js($this->option_state); ?>[' + state + '][brackets][' + idx + '][base_tax]" /></td>' +
+                                '<td><input type="number" step="0.0001" name="<?php echo esc_js($this->option_state); ?>[' + state + '][brackets][' + idx + '][rate]" /></td>' +
+                                '<td><button type="button" class="button link-delete ustc-remove-bracket"><?php echo esc_js(__('Remove', 'ustc2025')); ?></button></td>';
+                            table.appendChild(row);
+                        }
+                        if (e.target.classList.contains('ustc-remove-bracket')) {
+                            const row = e.target.closest('tr');
+                            if (row) row.remove();
+                        }
+                    });
+                });
+            </script>
+            <?php
+            echo ob_get_clean();
             echo '</div>';
         } else {
             $this->render_control_tool();
         }
         echo '</div>';
+    }
+
+    private function render_bracket_row($state_code, $index, $row)
+    {
+        $min = isset($row['min_income']) ? $row['min_income'] : '';
+        $max = isset($row['max_income']) ? $row['max_income'] : '';
+        $base = isset($row['base_tax']) ? $row['base_tax'] : '';
+        $rate = isset($row['rate']) ? $row['rate'] : '';
+        $html = '<tr>';
+        $html .= '<td><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($state_code) . '][brackets][' . esc_attr($index) . '][min_income]" value="' . esc_attr($min) . '" /></td>';
+        $html .= '<td><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($state_code) . '][brackets][' . esc_attr($index) . '][max_income]" value="' . esc_attr($max) . '" /></td>';
+        $html .= '<td><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($state_code) . '][brackets][' . esc_attr($index) . '][base_tax]" value="' . esc_attr($base) . '" /></td>';
+        $html .= '<td><input type="number" step="0.0001" name="' . esc_attr($this->option_state) . '[' . esc_attr($state_code) . '][brackets][' . esc_attr($index) . '][rate]" value="' . esc_attr($rate) . '" /></td>';
+        $html .= '<td><button type="button" class="button link-delete ustc-remove-bracket">' . esc_html__('Remove', 'ustc2025') . '</button></td>';
+        $html .= '</tr>';
+        return $html;
     }
 
     private function render_control_tool()
@@ -183,8 +529,8 @@ class USTaxCalculator2025
         echo '</div>';
         echo '<div class="ustc2025-row">';
         echo '<div class="ustc2025-col"><label>' . esc_html__('State', 'ustc2025') . '</label><select name="ustc_control_state">';
-        foreach ($this->states as $st) {
-            echo '<option value="' . esc_attr($st) . '"' . selected($state, $st, false) . '>' . esc_html($st) . '</option>';
+        foreach ($this->states_info as $st) {
+            echo '<option value="' . esc_attr($st['name']) . '"' . selected($state, $st['name'], false) . '>' . esc_html($st['name']) . '</option>';
         }
         echo '</select></div>';
         echo '<div class="ustc2025-col"><label>' . esc_html__('Residency', 'ustc2025') . '</label><select name="ustc_control_residency">';
@@ -197,7 +543,7 @@ class USTaxCalculator2025
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ustc_control_gross'])) {
             $federal = $this->calculate_federal($gross, $fwh, $residency, $federal_settings);
-            $state_result = $this->calculate_state($state, $gross, $swh, $residency, $state_settings[$state]);
+            $state_result = $this->calculate_state($state, $gross, $swh, $residency, $this->get_state_settings_by_name($state, $state_settings));
             echo '<div class="ustc2025-breakdown">';
             echo '<h4>' . esc_html__('Federal breakdown', 'ustc2025') . '</h4>';
             echo wp_kses_post($this->format_breakdown($federal['breakdown']));
@@ -232,25 +578,30 @@ class USTaxCalculator2025
         $gross = isset($_POST['GrossIncome']) ? floatval($_POST['GrossIncome']) : '';
         $fwh = isset($_POST['FederalWithholding']) ? floatval($_POST['FederalWithholding']) : '';
         $swh = isset($_POST['StateWithholding']) ? floatval($_POST['StateWithholding']) : '';
-        $state = isset($_POST['state']) ? sanitize_text_field($_POST['state']) : 'Arizona';
+        $state = isset($_POST['state']) ? sanitize_text_field($_POST['state']) : '';
 
         ob_start();
+        echo '<div class="ustc2025-wrapper">';
         echo '<div class="ustc2025-card ustc2025-form">';
+        echo '<div class="ustc2025-form-header">' . esc_html__('US Tax Refund kalkulator', 'ustc2025') . '</div>';
         echo '<form method="post">';
-        echo '<label>' . esc_html__('Total income (USD)', 'ustc2025') . '</label>'; 
-        echo '<input type="number" name="GrossIncome" step="0.01" min="0" required value="' . esc_attr($gross) . '" />';
-        echo '<label>' . esc_html__('Federal withholding (USD)', 'ustc2025') . '</label>'; 
-        echo '<input type="number" name="FederalWithholding" step="0.01" min="0" required value="' . esc_attr($fwh) . '" />';
-        echo '<label>' . esc_html__('State', 'ustc2025') . '</label>';
-        echo '<select name="state">';
-        foreach ($this->states as $st) {
-            echo '<option value="' . esc_attr($st) . '"' . selected($state, $st, false) . '>' . esc_html($st) . '</option>';
+        echo '<div class="ustc2025-form-grid">';
+        echo '<div class="ustc2025-field"><label>' . esc_html__('Total income (USD)', 'ustc2025') . '</label>';
+        echo '<input type="number" name="GrossIncome" step="0.01" min="0" required value="' . esc_attr($gross) . '" /></div>';
+        echo '<div class="ustc2025-field"><label>' . esc_html__('Federal withholding (USD)', 'ustc2025') . '</label>';
+        echo '<input type="number" name="FederalWithholding" step="0.01" min="0" required value="' . esc_attr($fwh) . '" /></div>';
+        echo '<div class="ustc2025-field"><label>' . esc_html__('State', 'ustc2025') . '</label>';
+        echo '<select name="state" required>';
+        echo '<option value="" disabled ' . selected('', $state, false) . '>' . esc_html__('— Odaberite državu —', 'ustc2025') . '</option>';
+        foreach ($this->states_info as $st) {
+            echo '<option value="' . esc_attr($st['name']) . '"' . selected($state, $st['name'], false) . '>' . esc_html($st['name']) . '</option>';
         }
-        echo '</select>';
-        echo '<label>' . esc_html__('State withholding (USD)', 'ustc2025') . '</label>';
-        echo '<input type="number" name="StateWithholding" step="0.01" min="0" value="' . esc_attr($swh) . '" />';
-        echo '<div style="margin-top:10px;">';
-        echo '<button class="ustc2025-button" type="submit" name="ustc_calculate" value="1">' . esc_html__('Calculate', 'ustc2025') . '</button>';
+        echo '</select></div>';
+        echo '<div class="ustc2025-field"><label>' . esc_html__('State withholding (USD)', 'ustc2025') . '</label>';
+        echo '<input type="number" name="StateWithholding" step="0.01" min="0" value="' . esc_attr($swh) . '" /></div>';
+        echo '</div>';
+        echo '<div class="ustc2025-actions">';
+        echo '<button class="ustc2025-button" type="submit" name="ustc_calculate" value="1">' . esc_html__('Izračunaj povrat', 'ustc2025') . '</button>';
         echo '<button class="ustc2025-reset" type="reset">' . esc_html__('Reset', 'ustc2025') . '</button>';
         echo '</div>';
         echo '</form>';
@@ -259,13 +610,16 @@ class USTaxCalculator2025
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ustc_calculate'])) {
             $federal_resident = $this->calculate_federal($gross, $fwh, 'resident', $federal_settings);
             $federal_nonresident = $this->calculate_federal($gross, $fwh, 'nonresident', $federal_settings);
-            $state_resident = $this->calculate_state($state, $gross, $swh, 'resident', $state_settings[$state]);
-            $state_nonresident = $this->calculate_state($state, $gross, $swh, 'nonresident', $state_settings[$state]);
+            $selected_state_settings = $this->get_state_settings_by_name($state, $state_settings);
+            $state_resident = $this->calculate_state($state, $gross, $swh, 'resident', $selected_state_settings);
+            $state_nonresident = $this->calculate_state($state, $gross, $swh, 'nonresident', $selected_state_settings);
             echo '<div class="ustc2025-results">';
-            echo $this->render_result_column(__('Resident', 'ustc2025'), $federal_resident, $state_resident);
-            echo $this->render_result_column(__('Non-resident', 'ustc2025'), $federal_nonresident, $state_nonresident);
+            echo $this->render_result_column(__('Rezident', 'ustc2025'), $federal_resident, $state_resident);
+            echo $this->render_result_column(__('Nerezident', 'ustc2025'), $federal_nonresident, $state_nonresident);
             echo '</div>';
         }
+
+        echo '</div>';
 
         return ob_get_clean();
     }
@@ -352,118 +706,74 @@ class USTaxCalculator2025
     private function calculate_state($state, $gross, $withholding, $residency, $settings)
     {
         $breakdown = [];
-        $tax = 0;
-        $na = false;
-        switch ($state) {
-            case 'Maryland':
-                $deduction = floatval($settings['deduction']);
-                $taxable = $gross - $deduction;
-                $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
-                $tax = $this->maryland_tax($taxable, $breakdown);
-                break;
-            case 'New Jersey':
-                $exemption = floatval($settings['exemption']);
-                $tax = $this->new_jersey_tax($gross, $exemption, $breakdown);
-                break;
-            case 'Massachusetts':
-                $exemption = floatval($settings['exemption']);
-                $rate = floatval($settings['rate']);
-                $taxable = $gross - $exemption - $withholding;
-                $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - exemption (%s) - withholding (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($exemption, 2), number_format($withholding, 2), number_format($taxable, 2));
-                $tax = $taxable * $rate;
-                $breakdown[] = sprintf(__('State tax = TaxableIncome * rate = %s * %s', 'ustc2025'), number_format($taxable, 2), $rate);
-                break;
-            case 'New York':
-                $deduction = floatval($settings['deduction']);
-                $taxable = $gross - $deduction;
-                $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
-                $tax = $this->new_york_tax($taxable, $breakdown);
-                break;
-            case 'Delaware':
-                $deduction = floatval($settings['deduction']);
-                $credit = floatval($settings['personal_tax_credit']);
-                $refund_threshold = floatval($settings['full_refund_threshold']);
-                $taxable = $gross - $deduction;
-                $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
-                if ($taxable < $refund_threshold) {
-                    $tax = 0;
-                    $breakdown[] = __('Full refund threshold met; state tax set to 0.', 'ustc2025');
-                    $tax_diff = -$withholding;
-                    return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
-                }
-                if ($taxable < 0) {
-                    $taxable = 0;
-                }
-                $tax = $this->delaware_tax($taxable, $breakdown);
-                $tax_diff = $tax - $withholding - $credit;
-                $breakdown[] = sprintf(__('Tax - withholding - credit = %s - %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($credit, 2), number_format($tax_diff, 2));
-                return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
-            case 'California':
-                $deduction = floatval($settings['deduction']);
-                $credit = floatval($settings['personal_tax_credit']);
-                $taxable = $gross - $deduction;
-                $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
-                $tax = $this->california_tax($taxable, $breakdown);
-                $tax_diff = $tax - $withholding - $credit;
-                $breakdown[] = sprintf(__('Tax - withholding - credit = %s - %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($credit, 2), number_format($tax_diff, 2));
-                return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
-            case 'Michigan':
-                $deduction = floatval($settings['deduction']);
-                $rate = floatval($settings['rate']);
-                $taxable = $gross - $deduction;
-                $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
-                $tax = $taxable * $rate;
-                $breakdown[] = sprintf(__('State tax = %s * %s = %s', 'ustc2025'), number_format($taxable, 2), $rate, number_format($tax, 2));
-                break;
-            case 'Missouri':
-                $tax = $this->missouri_tax($gross, $withholding, $residency, $settings, $breakdown);
-                return $tax;
-            case 'North Carolina':
-                $deduction = floatval($settings['deduction']);
-                $rate = floatval($settings['rate']);
-                $taxable = $gross - $deduction;
-                $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
-                $tax = $taxable * $rate;
-                $breakdown[] = sprintf(__('State tax = %s * %s = %s', 'ustc2025'), number_format($taxable, 2), $rate, number_format($tax, 2));
-                break;
-            case 'South Carolina':
-                $tax = $this->south_carolina_tax($gross, $withholding, $residency, $settings, $breakdown);
-                return $tax;
-            case 'Wisconsin':
-                $tax = $this->wisconsin_tax($gross, $withholding, $residency, $settings, $breakdown);
-                return $tax;
-            case 'Colorado':
-                $tax = $this->colorado_tax($gross, $withholding, $residency, $settings, $breakdown);
-                return $tax;
-            case 'Maine':
-                $tax = $this->maine_tax($gross, $withholding, $residency, $settings, $breakdown);
-                return $tax;
-            case 'Arizona':
-                $deduction = floatval($settings['deduction']);
-                $rate = floatval($settings['rate']);
-                $taxable = $gross - $deduction;
-                $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
-                $tax = $taxable * $rate;
-                $breakdown[] = sprintf(__('State tax = %s * %s = %s', 'ustc2025'), number_format($taxable, 2), $rate, number_format($tax, 2));
-                break;
-            case 'Virginia':
-                $tax = $this->virginia_tax($gross, $withholding, $settings, $breakdown);
-                return $tax;
-            case 'Rhode Island':
-                $tax = $this->rhode_island_tax($gross, $withholding, $residency, $settings, $breakdown);
-                return $tax;
-            case 'District of Columbia':
-                $breakdown[] = __('Full refund of state withholding applied.', 'ustc2025');
-                $tax_diff = -$withholding;
-                return ['tax' => 0, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
-            default:
-                $na = true;
-                break;
+        $code = $this->get_state_code_by_name($state);
+        if ($code === 'DC') {
+            $breakdown[] = __('Full refund of state withholding applied.', 'ustc2025');
+            return ['tax' => 0, 'tax_diff' => -$withholding, 'breakdown' => $breakdown];
         }
 
-        $tax_diff = $tax - $withholding;
-        $breakdown[] = sprintf(__('Tax - withholding = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
-        return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown, 'na' => $na];
+        $deduction = isset($settings['state_deduction']) ? floatval($settings['state_deduction']) : 0;
+        $personal_credit = isset($settings['personal_credit']) ? floatval($settings['personal_credit']) : 0;
+        $taxable = $gross - $deduction;
+        $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - state_deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
+        if ($taxable < 0) {
+            $taxable = 0;
+        }
+
+        if (!empty($settings['full_refund_threshold']) && $taxable < floatval($settings['full_refund_threshold'])) {
+            $breakdown[] = __('Full refund threshold met; state tax set to 0.', 'ustc2025');
+            return ['tax' => 0, 'tax_diff' => -$withholding, 'breakdown' => $breakdown];
+        }
+
+        $mode = isset($settings['calculation_mode']) ? $settings['calculation_mode'] : 'progressive_brackets';
+        if ($mode === 'flat_rate') {
+            $rate = isset($settings['flat_rate']) ? floatval($settings['flat_rate']) : 0;
+            $tax = $taxable * ($rate / 100);
+            $breakdown[] = sprintf(__('State tax = %s * %s%% = %s', 'ustc2025'), number_format($taxable, 2), $rate, number_format($tax, 2));
+        } else {
+            $brackets = isset($settings['brackets']) ? $settings['brackets'] : [];
+            $tax = $this->apply_brackets($taxable, $brackets, $breakdown);
+        }
+
+        $tax_diff = $tax - $withholding - $personal_credit;
+        $breakdown[] = sprintf(__('Tax - withholding - credit = %s - %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($personal_credit, 2), number_format($tax_diff, 2));
+        return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+    }
+
+    private function apply_brackets($taxable, $brackets, &$breakdown)
+    {
+        if ($taxable <= 0 || empty($brackets)) {
+            return 0;
+        }
+
+        usort($brackets, function ($a, $b) {
+            return floatval($a['min_income']) <=> floatval($b['min_income']);
+        });
+
+        foreach ($brackets as $row) {
+            $min = floatval($row['min_income']);
+            $max = $row['max_income'] === '' ? null : floatval($row['max_income']);
+            $base = floatval($row['base_tax']);
+            $rate = floatval($row['rate']);
+            if ($taxable < $min) {
+                continue;
+            }
+            if ($max !== null && $taxable > $max) {
+                continue;
+            }
+            $tax = $base + ($taxable - $min) * ($rate / 100);
+            $range = $max ? sprintf(__('between %s and %s', 'ustc2025'), number_format($min, 2), number_format($max, 2)) : sprintf(__('above %s', 'ustc2025'), number_format($min, 2));
+            $breakdown[] = sprintf(__('Bracket %s: base %s + (%s - %s) * %s%% = %s', 'ustc2025'), $range, number_format($base, 2), number_format($taxable, 2), number_format($min, 2), $rate, number_format($tax, 2));
+            return $tax;
+        }
+
+        $last = end($brackets);
+        $min = floatval($last['min_income']);
+        $base = floatval($last['base_tax']);
+        $rate = floatval($last['rate']);
+        $tax = $base + ($taxable - $min) * ($rate / 100);
+        $breakdown[] = sprintf(__('Top bracket: base %s + (%s - %s) * %s%% = %s', 'ustc2025'), number_format($base, 2), number_format($taxable, 2), number_format($min, 2), $rate, number_format($tax, 2));
+        return $tax;
     }
 
     private function maryland_tax($taxable, &$breakdown)
