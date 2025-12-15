@@ -18,8 +18,8 @@ class USTaxCalculator2025
         ['code' => 'AZ', 'name' => 'Arizona'],
         ['code' => 'CA', 'name' => 'California'],
         ['code' => 'CO', 'name' => 'Colorado'],
-        ['code' => 'DC', 'name' => 'District of Columbia'],
         ['code' => 'DE', 'name' => 'Delaware'],
+        ['code' => 'DC', 'name' => 'District of Columbia'],
         ['code' => 'ME', 'name' => 'Maine'],
         ['code' => 'MD', 'name' => 'Maryland'],
         ['code' => 'MA', 'name' => 'Massachusetts'],
@@ -31,6 +31,7 @@ class USTaxCalculator2025
         ['code' => 'OR', 'name' => 'Oregon'],
         ['code' => 'RI', 'name' => 'Rhode Island'],
         ['code' => 'SC', 'name' => 'South Carolina'],
+        ['code' => 'UT', 'name' => 'Utah'],
         ['code' => 'VA', 'name' => 'Virginia'],
         ['code' => 'WI', 'name' => 'Wisconsin'],
     ];
@@ -240,6 +241,13 @@ class USTaxCalculator2025
                     ['min_income' => 3560, 'max_income' => 17830, 'base_tax' => 0, 'rate' => 3],
                     ['min_income' => 17830, 'max_income' => '', 'base_tax' => 428.1, 'rate' => 6],
                 ],
+            ],
+            'UT' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 4.5,
+                'brackets' => [],
             ],
             'VA' => [
                 'state_deduction' => 15600,
