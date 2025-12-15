@@ -774,8 +774,8 @@ class USTaxCalculator2025
         $state_deduction = isset($settings['state_deduction']) ? floatval($settings['state_deduction']) : 0;
         $personal_exemption = isset($settings['personal_credit']) ? floatval($settings['personal_credit']) : 0;
 
-        $taxable = $gross - $federal_tax - $state_deduction - $personal_exemption;
-        $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - FederalTax (%s) - state_deduction (%s) - personal_exemption (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($federal_tax, 2), number_format($state_deduction, 2), number_format($personal_exemption, 2), number_format($taxable, 2));
+        $taxable = $gross - $federal_tax;
+        $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - FederalTax (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($federal_tax, 2), number_format($taxable, 2));
         if ($taxable < 0) {
             $taxable = 0;
         }
@@ -820,8 +820,8 @@ class USTaxCalculator2025
             }
         }
 
-        $tax_diff = $tax - $withholding;
-        $breakdown[] = sprintf(__('Tax - withholding = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+        $tax_diff = $tax - $withholding - $personal_exemption;
+        $breakdown[] = sprintf(__('Tax - withholding - personal exemption = %s - %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($personal_exemption, 2), number_format($tax_diff, 2));
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 
