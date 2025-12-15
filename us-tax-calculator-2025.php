@@ -628,10 +628,21 @@ class USTaxCalculator2025
     {
         $html = '<div class="ustc2025-card ustc2025-column">';
         $html .= '<h3>' . esc_html($title) . '</h3>';
-        $html .= '<p><strong>' . esc_html__('Federal:', 'ustc2025') . '</strong> ' . $this->format_result_message($federal['tax_diff']) . '</p>';
-        $html .= '<p><strong>' . esc_html__('State:', 'ustc2025') . '</strong> ' . $this->format_result_message($state['tax_diff'], $state['na'] ?? false) . '</p>';
+        $html .= '<p><strong>' . esc_html($this->get_result_label('federal', $federal['tax_diff'])) . '</strong> ' . $this->format_result_message($federal['tax_diff']) . '</p>';
+        $html .= '<p><strong>' . esc_html($this->get_result_label('state', $state['tax_diff'])) . '</strong> ' . $this->format_result_message($state['tax_diff'], $state['na'] ?? false) . '</p>';
         $html .= '</div>';
         return $html;
+    }
+
+    private function get_result_label($type, $tax_diff)
+    {
+        $is_refund = $tax_diff < 0;
+
+        if ($type === 'federal') {
+            return $is_refund ? __('Federal Tax Refund:', 'ustc2025') : __('Federal Tax Owed:', 'ustc2025');
+        }
+
+        return $is_refund ? __('State Tax Refund:', 'ustc2025') : __('State Tax Owed:', 'ustc2025');
     }
 
     private function format_result_message($tax_diff, $is_na = false)
@@ -641,7 +652,7 @@ class USTaxCalculator2025
         }
         $class = $tax_diff > 0 ? 'ustc2025-owe' : 'ustc2025-refund';
         $message = $tax_diff > 0 ? __('Dugujete', 'ustc2025') : __('Imate povrat', 'ustc2025');
-        $amount = number_format(abs($tax_diff), 2);
+        $amount = number_format(ceil(abs($tax_diff)), 0);
         return '<span class="' . esc_attr($class) . '">' . esc_html($message . ' ' . $amount . ' USD') . '</span>';
     }
 
