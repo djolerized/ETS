@@ -21,6 +21,7 @@ class USTaxCalculator2025
         ['code' => 'CO', 'name' => 'Colorado'],
         ['code' => 'DE', 'name' => 'Delaware'],
         ['code' => 'DC', 'name' => 'District of Columbia'],
+        ['code' => 'HI', 'name' => 'Hawaii'],
         ['code' => 'ME', 'name' => 'Maine'],
         ['code' => 'MD', 'name' => 'Maryland'],
         ['code' => 'MA', 'name' => 'Massachusetts'],
@@ -105,6 +106,22 @@ class USTaxCalculator2025
                 'calculation_mode' => 'flat_rate',
                 'flat_rate' => 0,
                 'brackets' => [],
+            ],
+            'HI' => [
+                'state_deduction' => 4400,
+                'personal_credit' => 1144,
+                'calculation_mode' => 'progressive_brackets',
+                'flat_rate' => '',
+                'brackets' => [
+                    ['min_income' => 0, 'max_income' => 9600, 'base_tax' => 0, 'rate' => 1.4],
+                    ['min_income' => 9600, 'max_income' => 14400, 'base_tax' => 134.4, 'rate' => 3.2],
+                    ['min_income' => 14400, 'max_income' => 19200, 'base_tax' => 288, 'rate' => 5.5],
+                    ['min_income' => 19200, 'max_income' => 24000, 'base_tax' => 552, 'rate' => 6.4],
+                    ['min_income' => 24000, 'max_income' => 36000, 'base_tax' => 859.2, 'rate' => 6.8],
+                    ['min_income' => 36000, 'max_income' => 48000, 'base_tax' => 1675.2, 'rate' => 7.2],
+                    ['min_income' => 48000, 'max_income' => 125000, 'base_tax' => 2539.2, 'rate' => 7.6],
+                    ['min_income' => 125000, 'max_income' => '', 'base_tax' => 8391.2, 'rate' => 7.9],
+                ],
             ],
             'DE' => [
                 'state_deduction' => 3250,
@@ -767,6 +784,9 @@ class USTaxCalculator2025
         if ($code === 'AL') {
             return $this->alabama_tax($gross, $withholding, $residency, $settings, $federal_result);
         }
+        if ($code === 'HI') {
+            return $this->hawaii_tax($gross, $withholding, $residency, $settings);
+        }
         if ($code === 'OR') {
             return $this->oregon_tax($gross, $withholding, $residency, $settings, $federal_result);
         }
@@ -803,6 +823,64 @@ class USTaxCalculator2025
 
         $tax_diff = $tax - $withholding - $personal_credit;
         $breakdown[] = sprintf(__('Tax - withholding - credit = %s - %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($personal_credit, 2), number_format($tax_diff, 2));
+        return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+    }
+
+    private function hawaii_tax($gross, $withholding, $residency, $settings)
+    {
+        $breakdown = [];
+        $state_deduction = isset($settings['state_deduction']) ? floatval($settings['state_deduction']) : 0;
+        $personal_exemption = isset($settings['personal_credit']) ? floatval($settings['personal_credit']) : 0;
+
+        if ($residency === 'resident') {
+            $taxable = $gross - $state_deduction - $personal_exemption;
+            $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - HI deduction (%s) - HI personal exemption (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($state_deduction, 2), number_format($personal_exemption, 2), number_format($taxable, 2));
+        } else {
+            $taxable = $gross - $personal_exemption;
+            $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - HI personal exemption (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($personal_exemption, 2), number_format($taxable, 2));
+        }
+
+        if ($taxable < 0) {
+            $taxable = 0;
+        }
+
+        $brackets = [
+            ['min_income' => 0, 'max_income' => 9600, 'rate' => 1.4],
+            ['min_income' => 9600, 'max_income' => 14400, 'rate' => 3.2],
+            ['min_income' => 14400, 'max_income' => 19200, 'rate' => 5.5],
+            ['min_income' => 19200, 'max_income' => 24000, 'rate' => 6.4],
+            ['min_income' => 24000, 'max_income' => 36000, 'rate' => 6.8],
+            ['min_income' => 36000, 'max_income' => 48000, 'rate' => 7.2],
+            ['min_income' => 48000, 'max_income' => 125000, 'rate' => 7.6],
+            ['min_income' => 125000, 'max_income' => null, 'rate' => 7.9],
+        ];
+
+        $tax = 0;
+        foreach ($brackets as $row) {
+            $min = floatval($row['min_income']);
+            $max = $row['max_income'] === '' ? null : $row['max_income'];
+            $rate = floatval($row['rate']);
+
+            if ($taxable <= $min) {
+                continue;
+            }
+
+            $upper = $max === null ? $taxable : min($max, $taxable);
+            $portion = max(0, $upper - $min);
+            $segment_tax = $portion * ($rate / 100);
+            $tax += $segment_tax;
+
+            $range_label = $max === null ? sprintf(__('above %s', 'ustc2025'), number_format($min, 2)) : sprintf(__('between %s and %s', 'ustc2025'), number_format($min, 2), number_format($max, 2));
+            $breakdown[] = sprintf(__('Bracket %s: (%s - %s) * %s%% = %s', 'ustc2025'), $range_label, number_format($upper, 2), number_format($min, 2), $rate, number_format($segment_tax, 2));
+
+            if ($max !== null && $taxable <= $max) {
+                break;
+            }
+        }
+
+        $tax_diff = $tax - $withholding;
+        $breakdown[] = sprintf(__('Tax - withholding = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 
