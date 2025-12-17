@@ -723,9 +723,20 @@ JS;
             $selected_state_settings = $this->get_state_settings_by_name($state, $state_settings);
             $state_resident = $this->calculate_state($state, $gross, $swh, 'resident', $selected_state_settings, $federal_resident);
             $state_nonresident = $this->calculate_state($state, $gross, $swh, 'nonresident', $selected_state_settings, $federal_nonresident);
+
+            $state_resident = !empty($state_resident) ? $state_resident : $state_nonresident;
+            $state_nonresident = !empty($state_nonresident) ? $state_nonresident : $state_resident;
+
+            $state_code = $this->get_state_code_by_name($state);
+
             echo '<div class="ustc2025-results">';
-            echo $this->render_result_column(__('Resident', 'ustc2025'), $federal_resident, $state_resident);
-            echo $this->render_result_column(__('Non resident', 'ustc2025'), $federal_nonresident, $state_nonresident);
+            if ($state_code === 'ME') {
+                echo $this->render_result_column(__('Non resident', 'ustc2025'), $federal_nonresident, $state_nonresident);
+                echo $this->render_result_column(__('Resident', 'ustc2025'), $federal_resident, $state_resident);
+            } else {
+                echo $this->render_result_column(__('Resident', 'ustc2025'), $federal_resident, $state_resident);
+                echo $this->render_result_column(__('Non resident', 'ustc2025'), $federal_nonresident, $state_nonresident);
+            }
             echo '</div>';
         }
 
