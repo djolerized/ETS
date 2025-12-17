@@ -22,6 +22,7 @@ class USTaxCalculator2025
         ['code' => 'DE', 'name' => 'Delaware'],
         ['code' => 'DC', 'name' => 'District of Columbia'],
         ['code' => 'HI', 'name' => 'Hawaii'],
+        ['code' => 'ID', 'name' => 'Idaho'],
         ['code' => 'ME', 'name' => 'Maine'],
         ['code' => 'MD', 'name' => 'Maryland'],
         ['code' => 'MA', 'name' => 'Massachusetts'],
@@ -122,6 +123,15 @@ class USTaxCalculator2025
                     ['min_income' => 48000, 'max_income' => 125000, 'base_tax' => 2539.2, 'rate' => 7.6],
                     ['min_income' => 125000, 'max_income' => '', 'base_tax' => 8391.2, 'rate' => 7.9],
                 ],
+            ],
+            'ID' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 5.3,
+                'id_deduction' => 14600,
+                'permanent_building_fund_tax' => 10,
+                'brackets' => [],
             ],
             'DE' => [
                 'state_deduction' => 3250,
@@ -419,6 +429,14 @@ JS;
                 $clean[$code]['deduction_nonresident'] = isset($state_input['deduction_nonresident']) ? floatval($state_input['deduction_nonresident']) : floatval($defaults[$code]['deduction_nonresident']);
             }
 
+            if (isset($defaults[$code]['id_deduction'])) {
+                $clean[$code]['id_deduction'] = isset($state_input['id_deduction']) ? floatval($state_input['id_deduction']) : floatval($defaults[$code]['id_deduction']);
+            }
+
+            if (isset($defaults[$code]['permanent_building_fund_tax'])) {
+                $clean[$code]['permanent_building_fund_tax'] = isset($state_input['permanent_building_fund_tax']) ? floatval($state_input['permanent_building_fund_tax']) : floatval($defaults[$code]['permanent_building_fund_tax']);
+            }
+
             if (!empty($defaults[$code]['full_refund_threshold'])) {
                 $clean[$code]['full_refund_threshold'] = floatval($defaults[$code]['full_refund_threshold']);
             }
@@ -515,6 +533,11 @@ JS;
                     $nonresident_deduction = isset($state_settings['deduction_nonresident']) ? $state_settings['deduction_nonresident'] : '';
                     echo '<div class="ustc2025-col"><label>' . esc_html__('Resident deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][deduction_resident]" value="' . esc_attr($resident_deduction) . '" /></div>';
                     echo '<div class="ustc2025-col"><label>' . esc_html__('Non-resident deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][deduction_nonresident]" value="' . esc_attr($nonresident_deduction) . '" /></div>';
+                } elseif ($code === 'ID') {
+                    $id_deduction = isset($state_settings['id_deduction']) ? $state_settings['id_deduction'] : '';
+                    $pbf_tax = isset($state_settings['permanent_building_fund_tax']) ? $state_settings['permanent_building_fund_tax'] : '';
+                    echo '<div class="ustc2025-col"><label>' . esc_html__('Idaho deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][id_deduction]" value="' . esc_attr($id_deduction) . '" /></div>';
+                    echo '<div class="ustc2025-col"><label>' . esc_html__('Permanent building fund tax (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][permanent_building_fund_tax]" value="' . esc_attr($pbf_tax) . '" /></div>';
                 } else {
                     echo '<div class="ustc2025-col"><label>' . esc_html__('State deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" /></div>';
                     echo '<div class="ustc2025-col"><label>' . esc_html__('Personal credit (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" /></div>';
@@ -730,13 +753,8 @@ JS;
             $state_code = $this->get_state_code_by_name($state);
 
             echo '<div class="ustc2025-results">';
-            if ($state_code === 'ME') {
-                echo $this->render_result_column(__('Non resident', 'ustc2025'), $federal_nonresident, $state_nonresident);
-                echo $this->render_result_column(__('Resident', 'ustc2025'), $federal_resident, $state_resident);
-            } else {
-                echo $this->render_result_column(__('Resident', 'ustc2025'), $federal_resident, $state_resident);
-                echo $this->render_result_column(__('Non resident', 'ustc2025'), $federal_nonresident, $state_nonresident);
-            }
+            echo $this->render_result_column(__('Non resident', 'ustc2025'), $federal_nonresident, $state_nonresident);
+            echo $this->render_result_column(__('Resident', 'ustc2025'), $federal_resident, $state_resident);
             echo '</div>';
         }
 
@@ -857,6 +875,9 @@ JS;
         }
         if ($code === 'ME') {
             return $this->maine_tax($gross, $withholding, $residency, $settings, $breakdown);
+        }
+        if ($code === 'ID') {
+            return $this->idaho_tax($gross, $withholding, $residency, $settings, $breakdown);
         }
 
         $deduction = isset($settings['state_deduction']) ? floatval($settings['state_deduction']) : 0;
@@ -1365,6 +1386,33 @@ JS;
         $tax_diff = $tax - $withholding;
         $breakdown[] = sprintf(__('Tax - withholding = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+    }
+
+    private function idaho_tax($gross, $withholding, $residency, $settings, &$breakdown)
+    {
+        $flat_rate = isset($settings['flat_rate']) ? floatval($settings['flat_rate']) : 0;
+        $deduction = isset($settings['id_deduction']) ? floatval($settings['id_deduction']) : 0;
+        $pbf_tax = isset($settings['permanent_building_fund_tax']) ? floatval($settings['permanent_building_fund_tax']) : 0;
+
+        if ($residency === 'resident') {
+            $taxable = max(0, $gross - $deduction);
+            $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - ID deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
+        } else {
+            $taxable = $gross;
+            $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s)', 'ustc2025'), number_format($gross, 2));
+        }
+
+        $rate_decimal = $flat_rate / 100;
+        $id_tax = $taxable * $rate_decimal;
+        $breakdown[] = sprintf(__('Idaho tax = %s * %s%% = %s', 'ustc2025'), number_format($taxable, 2), $flat_rate, number_format($id_tax, 2));
+
+        $final_tax = $id_tax + $pbf_tax;
+        $breakdown[] = sprintf(__('Final Idaho tax = Idaho tax (%s) + Permanent building fund tax (%s) = %s', 'ustc2025'), number_format($id_tax, 2), number_format($pbf_tax, 2), number_format($final_tax, 2));
+
+        $tax_diff = $final_tax - $withholding;
+        $breakdown[] = sprintf(__('Tax - withholding = %s - %s = %s', 'ustc2025'), number_format($final_tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+
+        return ['tax' => $final_tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 
     private function maine_tax($gross, $withholding, $residency, $settings, &$breakdown)
