@@ -655,7 +655,7 @@ class USTaxCalculator2025
         echo '<input type="number" name="FederalWithholding" step="0.01" min="0" required value="' . esc_attr($fwh) . '" /></div>';
         echo '<div class="ustc2025-field"><label>' . esc_html__('State', 'ustc2025') . '</label>';
         echo '<select name="state" required>';
-        echo '<option value="" disabled ' . selected('', $state, false) . '>' . esc_html__('— Odaberite državu —', 'ustc2025') . '</option>';
+        echo '<option value="" disabled ' . selected('', $state, false) . '>' . esc_html__('— Choose a state —', 'ustc2025') . '</option>';
         foreach ($this->states_info as $st) {
             echo '<option value="' . esc_attr($st['name']) . '"' . selected($state, $st['name'], false) . '>' . esc_html($st['name']) . '</option>';
         }
@@ -664,7 +664,7 @@ class USTaxCalculator2025
         echo '<input type="number" name="StateWithholding" step="0.01" min="0" value="' . esc_attr($swh) . '" /></div>';
         echo '</div>';
         echo '<div class="ustc2025-actions">';
-        echo '<button class="ustc2025-button" type="submit" name="ustc_calculate" value="1">' . esc_html__('Izračunaj povrat', 'ustc2025') . '</button>';
+        echo '<button class="ustc2025-button" type="submit" name="ustc_calculate" value="1">' . esc_html__('Calculate', 'ustc2025') . '</button>';
         echo '<button class="ustc2025-reset" type="reset">' . esc_html__('Reset', 'ustc2025') . '</button>';
         echo '</div>';
         echo '</form>';
@@ -714,7 +714,7 @@ class USTaxCalculator2025
             return esc_html__('N/A', 'ustc2025');
         }
         $class = $tax_diff > 0 ? 'ustc2025-owe' : 'ustc2025-refund';
-        $message = $tax_diff > 0 ? __('Dugujete', 'ustc2025') : __('Imate povrat', 'ustc2025');
+        $message = $tax_diff > 0 ? __('', 'ustc2025') : __('', 'ustc2025');
         $amount = number_format(ceil(abs($tax_diff)), 0);
         return '<span class="' . esc_attr($class) . '">' . esc_html($message . ' ' . $amount . ' USD') . '</span>';
     }
