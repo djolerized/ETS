@@ -329,8 +329,32 @@ class USTaxCalculator2025
         $script_handle = 'ustc2025-scripts';
         wp_register_script($script_handle, false, [], false, true);
         wp_enqueue_script($script_handle);
-        $script = "document.addEventListener('DOMContentLoaded',function(){const form=document.querySelector('.ustc2025-form form');if(!form){return;}const resetBtn=form.querySelector('.ustc2025-reset');if(!resetBtn){return;}resetBtn.addEventListener('click',function(event){event.preventDefault();form.querySelectorAll('input').forEach(function(input){input.value='';});const stateSelect=form.querySelector('select[name=\\"state\\"]');if(stateSelect){stateSelect.value='';}const results=document.querySelector('.ustc2025-results');if(results){results.remove();}});});";
+        $script = <<<'JS'
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.querySelector('.ustc2025-form form');
+    if (!form) {
+        return;
+    }
+
+    const resetBtn = form.querySelector('.ustc2025-reset');
+    if (!resetBtn) {
+        return;
+    }
+
+    resetBtn.addEventListener('click', function (event) {
+        event.preventDefault();
+
+        form.reset();
+
+        const results = document.querySelector('.ustc2025-results');
+        if (results) {
+            results.remove();
+        }
+    });
+});
+JS;
         wp_add_inline_script($script_handle, $script);
+
     }
 
     public function register_admin_pages()
