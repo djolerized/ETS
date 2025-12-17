@@ -325,6 +325,36 @@ class USTaxCalculator2025
         wp_register_style($handle, false);
         wp_enqueue_style($handle);
         wp_add_inline_style($handle, $css);
+
+        $script_handle = 'ustc2025-scripts';
+        wp_register_script($script_handle, false, [], false, true);
+        wp_enqueue_script($script_handle);
+        $script = <<<'JS'
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.querySelector('.ustc2025-form form');
+    if (!form) {
+        return;
+    }
+
+    const resetBtn = form.querySelector('.ustc2025-reset');
+    if (!resetBtn) {
+        return;
+    }
+
+    resetBtn.addEventListener('click', function (event) {
+        event.preventDefault();
+
+        form.reset();
+
+        const results = document.querySelector('.ustc2025-results');
+        if (results) {
+            results.remove();
+        }
+    });
+});
+JS;
+        wp_add_inline_script($script_handle, $script);
+
     }
 
     public function register_admin_pages()
@@ -646,7 +676,7 @@ class USTaxCalculator2025
         ob_start();
         echo '<div class="ustc2025-wrapper">';
         echo '<div class="ustc2025-card ustc2025-form">';
-        echo '<div class="ustc2025-form-header">' . esc_html__('US Tax Refund kalkulator', 'ustc2025') . '</div>';
+        echo '<div class="ustc2025-form-header">' . esc_html__('US Tax Refund Calculator', 'ustc2025') . '</div>';
         echo '<form method="post">';
         echo '<div class="ustc2025-form-grid">';
         echo '<div class="ustc2025-field"><label>' . esc_html__('Total income (USD)', 'ustc2025') . '</label>';
@@ -677,8 +707,8 @@ class USTaxCalculator2025
             $state_resident = $this->calculate_state($state, $gross, $swh, 'resident', $selected_state_settings, $federal_resident);
             $state_nonresident = $this->calculate_state($state, $gross, $swh, 'nonresident', $selected_state_settings, $federal_nonresident);
             echo '<div class="ustc2025-results">';
-            echo $this->render_result_column(__('Rezident', 'ustc2025'), $federal_resident, $state_resident);
-            echo $this->render_result_column(__('Nerezident', 'ustc2025'), $federal_nonresident, $state_nonresident);
+            echo $this->render_result_column(__('Non resident', 'ustc2025'), $federal_nonresident, $state_nonresident);
+            echo $this->render_result_column(__('Resident', 'ustc2025'), $federal_resident, $state_resident);
             echo '</div>';
         }
 
