@@ -23,6 +23,7 @@ class USTaxCalculator2025
         ['code' => 'DC', 'name' => 'District of Columbia'],
         ['code' => 'HI', 'name' => 'Hawaii'],
         ['code' => 'ID', 'name' => 'Idaho'],
+        ['code' => 'IA', 'name' => 'Iowa'],
         ['code' => 'ME', 'name' => 'Maine'],
         ['code' => 'MD', 'name' => 'Maryland'],
         ['code' => 'MA', 'name' => 'Massachusetts'],
@@ -131,6 +132,14 @@ class USTaxCalculator2025
                 'flat_rate' => 5.3,
                 'id_deduction' => 14600,
                 'permanent_building_fund_tax' => 10,
+                'brackets' => [],
+            ],
+            'IA' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 3.8,
+                'ia_personal_credit' => 40,
                 'brackets' => [],
             ],
             'DE' => [
@@ -437,6 +446,10 @@ JS;
                 $clean[$code]['permanent_building_fund_tax'] = isset($state_input['permanent_building_fund_tax']) ? floatval($state_input['permanent_building_fund_tax']) : floatval($defaults[$code]['permanent_building_fund_tax']);
             }
 
+            if (isset($defaults[$code]['ia_personal_credit'])) {
+                $clean[$code]['ia_personal_credit'] = isset($state_input['ia_personal_credit']) ? floatval($state_input['ia_personal_credit']) : floatval($defaults[$code]['ia_personal_credit']);
+            }
+
             if (!empty($defaults[$code]['full_refund_threshold'])) {
                 $clean[$code]['full_refund_threshold'] = floatval($defaults[$code]['full_refund_threshold']);
             }
@@ -538,6 +551,9 @@ JS;
                     $pbf_tax = isset($state_settings['permanent_building_fund_tax']) ? $state_settings['permanent_building_fund_tax'] : '';
                     echo '<div class="ustc2025-col"><label>' . esc_html__('Idaho deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][id_deduction]" value="' . esc_attr($id_deduction) . '" /></div>';
                     echo '<div class="ustc2025-col"><label>' . esc_html__('Permanent building fund tax (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][permanent_building_fund_tax]" value="' . esc_attr($pbf_tax) . '" /></div>';
+                } elseif ($code === 'IA') {
+                    $ia_personal_credit = isset($state_settings['ia_personal_credit']) ? $state_settings['ia_personal_credit'] : '';
+                    echo '<div class="ustc2025-col"><label>' . esc_html__('Iowa personal credit (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][ia_personal_credit]" value="' . esc_attr($ia_personal_credit) . '" /></div>';
                 } else {
                     echo '<div class="ustc2025-col"><label>' . esc_html__('State deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" /></div>';
                     echo '<div class="ustc2025-col"><label>' . esc_html__('Personal credit (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" /></div>';
@@ -878,6 +894,9 @@ JS;
         }
         if ($code === 'ID') {
             return $this->idaho_tax($gross, $withholding, $residency, $settings, $breakdown);
+        }
+        if ($code === 'IA') {
+            return $this->iowa_tax($gross, $withholding, $residency, $settings, $breakdown);
         }
 
         $deduction = isset($settings['state_deduction']) ? floatval($settings['state_deduction']) : 0;
@@ -1408,6 +1427,28 @@ JS;
 
         $final_tax = $id_tax + $pbf_tax;
         $breakdown[] = sprintf(__('Final Idaho tax = Idaho tax (%s) + Permanent building fund tax (%s) = %s', 'ustc2025'), number_format($id_tax, 2), number_format($pbf_tax, 2), number_format($final_tax, 2));
+
+        $tax_diff = $final_tax - $withholding;
+        $breakdown[] = sprintf(__('Tax - withholding = %s - %s = %s', 'ustc2025'), number_format($final_tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+
+        return ['tax' => $final_tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+    }
+
+    private function iowa_tax($gross, $withholding, $residency, $settings, &$breakdown)
+    {
+        $federal_settings = $this->get_federal_settings();
+        $federal_deduction = isset($federal_settings['std_deduction']) ? floatval($federal_settings['std_deduction']) : 0;
+        $flat_rate = isset($settings['flat_rate']) ? floatval($settings['flat_rate']) : 0;
+        $personal_credit = isset($settings['ia_personal_credit']) ? floatval($settings['ia_personal_credit']) : 0;
+
+        $taxable = max(0, $gross - $federal_deduction);
+        $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - Federal deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($federal_deduction, 2), number_format($taxable, 2));
+
+        $ia_tax = $taxable * ($flat_rate / 100);
+        $breakdown[] = sprintf(__('Iowa tax = %s * %s%% = %s', 'ustc2025'), number_format($taxable, 2), $flat_rate, number_format($ia_tax, 2));
+
+        $final_tax = $ia_tax - $personal_credit;
+        $breakdown[] = sprintf(__('Final Iowa tax = Iowa tax (%s) - Iowa personal credit (%s) = %s', 'ustc2025'), number_format($ia_tax, 2), number_format($personal_credit, 2), number_format($final_tax, 2));
 
         $tax_diff = $final_tax - $withholding;
         $breakdown[] = sprintf(__('Tax - withholding = %s - %s = %s', 'ustc2025'), number_format($final_tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
