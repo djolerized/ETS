@@ -895,6 +895,9 @@ JS;
         echo '<div class="ustc2025-field"><label>' . esc_html__('State withholding (USD)', 'ustc2025') . '</label>';
         echo '<input type="number" name="StateWithholding" step="0.01" min="0" value="' . esc_attr($swh) . '" /></div>';
         echo '</div>';
+        if ($state === 'New York') {
+            echo '<div class="ustc2025-disclaimer">' . esc_html__('If you paid New York local tax, please contact us for more detailed calculation.', 'ustc2025') . '</div>';
+        }
         echo '<div class="ustc2025-actions">';
         echo '<button class="ustc2025-button" type="submit" name="ustc_calculate" value="1">' . esc_html__('Calculate', 'ustc2025') . '</button>';
         echo '<button class="ustc2025-reset" type="reset">' . esc_html__('Reset', 'ustc2025') . '</button>';
