@@ -16,11 +16,14 @@ class USTaxCalculator2025
     private $option_state = 'us_tax_calculator_states_2025';
     private $states_info = [
         ['code' => 'AL', 'name' => 'Alabama'],
+        ['code' => 'AR', 'name' => 'Arkansas'],
         ['code' => 'AZ', 'name' => 'Arizona'],
         ['code' => 'CA', 'name' => 'California'],
         ['code' => 'CO', 'name' => 'Colorado'],
+        ['code' => 'CT', 'name' => 'Connecticut'],
         ['code' => 'DC', 'name' => 'District of Columbia'],
         ['code' => 'DE', 'name' => 'Delaware'],
+        ['code' => 'GE', 'name' => 'Georgia'],
         ['code' => 'HI', 'name' => 'Hawaii'],
         ['code' => 'IA', 'name' => 'Iowa'],
         ['code' => 'KY', 'name' => 'Kentucky'],
@@ -74,6 +77,17 @@ class USTaxCalculator2025
                     ['min_income' => 3000, 'max_income' => '', 'base_tax' => 110, 'rate' => 5],
                 ],
             ],
+            'AR' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'ar_tax_credits' => 89,
+                'calculation_mode' => 'progressive_brackets',
+                'flat_rate' => '',
+                'brackets' => [
+                    ['min_income' => 0, 'max_income' => 4500, 'base_tax' => 0, 'rate' => 2],
+                    ['min_income' => 4500, 'max_income' => '', 'base_tax' => 0, 'rate' => 3.9],
+                ],
+            ],
             'AZ' => [
                 'state_deduction' => 15600,
                 'personal_credit' => 0,
@@ -105,11 +119,34 @@ class USTaxCalculator2025
                 'flat_rate' => 4.4,
                 'brackets' => [],
             ],
+            'CT' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'ct_deduction' => 15000,
+                'calculation_mode' => 'progressive_brackets',
+                'flat_rate' => '',
+                'brackets' => [
+                    ['min_income' => 0, 'max_income' => 10000, 'base_tax' => 0, 'rate' => 2],
+                    ['min_income' => 10000, 'max_income' => 50000, 'base_tax' => 200, 'rate' => 4.5],
+                    ['min_income' => 50000, 'max_income' => 100000, 'base_tax' => 2000, 'rate' => 5.5],
+                    ['min_income' => 100000, 'max_income' => 200000, 'base_tax' => 4750, 'rate' => 6],
+                    ['min_income' => 200000, 'max_income' => '', 'base_tax' => 10750, 'rate' => 6],
+                ],
+            ],
             'DC' => [
                 'state_deduction' => 0,
                 'personal_credit' => 0,
                 'calculation_mode' => 'flat_rate',
                 'flat_rate' => 0,
+                'brackets' => [],
+            ],
+            'GE' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'ge_deduction' => 12000,
+                'ge_credit' => 300,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 5.19,
                 'brackets' => [],
             ],
             'HI' => [
@@ -510,6 +547,10 @@ JS;
                 $clean[$code]['full_refund_threshold'] = floatval($defaults[$code]['full_refund_threshold']);
             }
 
+            if (isset($defaults[$code]['ar_tax_credits'])) {
+                $clean[$code]['ar_tax_credits'] = isset($state_input['ar_tax_credits']) ? floatval($state_input['ar_tax_credits']) : floatval($defaults[$code]['ar_tax_credits']);
+            }
+
             if (isset($state_input['brackets']) && is_array($state_input['brackets'])) {
                 foreach ($state_input['brackets'] as $row) {
                     if ($row === null) {
@@ -631,6 +672,21 @@ JS;
                 } elseif ($code === 'IA') {
                     $ia_personal_credit = isset($state_settings['ia_personal_credit']) ? $state_settings['ia_personal_credit'] : '';
                     echo '<div class="ustc2025-col"><label>' . esc_html__('Iowa personal credit (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][ia_personal_credit]" value="' . esc_attr($ia_personal_credit) . '" /></div>';
+                } elseif ($code === 'CT') {
+                    $ct_deduction = isset($state_settings['ct_deduction']) ? $state_settings['ct_deduction'] : '';
+                    echo '<div class="ustc2025-col"><label>' . esc_html__('Connecticut deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][ct_deduction]" value="' . esc_attr($ct_deduction) . '" /></div>';
+                    echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" />';
+                    echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" />';
+                } elseif ($code === 'AR') {
+                    $ar_tax_credits = isset($state_settings['ar_tax_credits']) ? $state_settings['ar_tax_credits'] : '';
+                    echo '<div class="ustc2025-col"><label>' . esc_html__('Arkansas tax credits (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][ar_tax_credits]" value="' . esc_attr($ar_tax_credits) . '" /></div>';
+                } elseif ($code === 'GE') {
+                    $ge_deduction = isset($state_settings['ge_deduction']) ? $state_settings['ge_deduction'] : '';
+                    $ge_credit = isset($state_settings['ge_credit']) ? $state_settings['ge_credit'] : '';
+                    echo '<div class="ustc2025-col"><label>' . esc_html__('Georgia deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][ge_deduction]" value="' . esc_attr($ge_deduction) . '" /></div>';
+                    echo '<div class="ustc2025-col"><label>' . esc_html__('Georgia credit (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][ge_credit]" value="' . esc_attr($ge_credit) . '" /></div>';
+                    echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" />';
+                    echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" />';
                 } elseif ($code === 'MO') {
                     $income_ranges = isset($state_settings['income_range_brackets']) ? $state_settings['income_range_brackets'] : [];
                     echo '<div class="ustc2025-col"><label>' . esc_html__('Missouri deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" /></div>';
@@ -1025,6 +1081,12 @@ JS;
         if ($code === 'AL') {
             return $this->alabama_tax($gross, $withholding, $residency, $settings, $federal_result);
         }
+        if ($code === 'AR') {
+            return $this->arkansas_tax($gross, $withholding, $settings, $residency);
+        }
+        if ($code === 'CT') {
+            return $this->connecticut_tax($gross, $withholding, $settings, $residency);
+        }
         if ($code === 'HI') {
             return $this->hawaii_tax($gross, $withholding, $residency, $settings);
         }
@@ -1033,6 +1095,9 @@ JS;
         }
         if ($code === 'MN') {
             return $this->minnesota_tax($gross, $withholding, $residency, $settings);
+        }
+        if ($code === 'GE') {
+            return $this->georgia_tax($gross, $withholding, $residency, $settings);
         }
         if ($code === 'DC') {
             $breakdown[] = __('Full refund of state withholding applied.', 'ustc2025');
@@ -1091,6 +1156,129 @@ JS;
 
         $tax_diff = $tax - $withholding - $personal_credit;
         $breakdown[] = sprintf(__('Tax - withholding - credit = %s - %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($personal_credit, 2), number_format($tax_diff, 2));
+        return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+    }
+
+    private function arkansas_tax($gross, $withholding, $settings, $residency)
+    {
+        $breakdown = [];
+        $taxable = $gross;
+        $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s)', 'ustc2025'), number_format($taxable, 2));
+
+        $brackets = isset($settings['brackets']) && is_array($settings['brackets']) && !empty($settings['brackets'])
+            ? $settings['brackets']
+            : [
+                ['min_income' => 0, 'max_income' => 4500, 'rate' => 2],
+                ['min_income' => 4500, 'max_income' => '', 'rate' => 3.9],
+            ];
+
+        usort($brackets, function ($a, $b) {
+            return floatval($a['min_income']) <=> floatval($b['min_income']);
+        });
+
+        $tax = 0;
+        foreach ($brackets as $row) {
+            $min = floatval($row['min_income']);
+            $max = $row['max_income'] === '' ? null : floatval($row['max_income']);
+            $rate = floatval($row['rate']);
+
+            if ($taxable <= $min) {
+                continue;
+            }
+
+            $upper = $max === null ? $taxable : min($max, $taxable);
+            $portion = max(0, $upper - $min);
+            $segment_tax = $portion * ($rate / 100);
+            $tax += $segment_tax;
+
+            $range_label = $max === null ? sprintf(__('above %s', 'ustc2025'), number_format($min, 2)) : sprintf(__('between %s and %s', 'ustc2025'), number_format($min, 2), number_format($max, 2));
+            $breakdown[] = sprintf(__('Bracket %s: (%s - %s) * %s%% = %s', 'ustc2025'), $range_label, number_format($upper, 2), number_format($min, 2), $rate, number_format($segment_tax, 2));
+
+            if ($max !== null && $taxable <= $max) {
+                break;
+            }
+        }
+
+        $breakdown[] = sprintf(__('Arkansas tax before credits: %s', 'ustc2025'), number_format($tax, 2));
+        $credits = isset($settings['ar_tax_credits']) ? floatval($settings['ar_tax_credits']) : 0;
+        $final_tax = $tax - $credits;
+        $breakdown[] = sprintf(__('Arkansas tax credits applied: %s', 'ustc2025'), number_format($credits, 2));
+        $breakdown[] = sprintf(__('AR final tax = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($credits, 2), number_format($final_tax, 2));
+
+        $tax_diff = $final_tax - $withholding;
+        $breakdown[] = sprintf(__('Final tax - withholding = %s - %s = %s', 'ustc2025'), number_format($final_tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+
+        return ['tax' => $final_tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+    }
+
+    private function connecticut_tax($gross, $withholding, $settings, $residency)
+    {
+        $breakdown = [];
+
+        if ($gross <= 15000) {
+            $breakdown[] = sprintf(__('Total income (%s) at or below Connecticut refund threshold; refunding state withholding.', 'ustc2025'), number_format($gross, 2));
+            return ['tax' => 0, 'tax_diff' => -$withholding, 'breakdown' => $breakdown];
+        }
+
+        $deduction = isset($settings['ct_deduction']) ? floatval($settings['ct_deduction']) : 0;
+        $taxable = $gross - $deduction;
+        $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - CT deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
+        if ($taxable < 0) {
+            $taxable = 0;
+        }
+
+        $brackets = isset($settings['brackets']) && is_array($settings['brackets']) && !empty($settings['brackets'])
+            ? $settings['brackets']
+            : [
+                ['min_income' => 0, 'max_income' => 10000, 'base_tax' => 0, 'rate' => 2],
+                ['min_income' => 10000, 'max_income' => 50000, 'base_tax' => 200, 'rate' => 4.5],
+                ['min_income' => 50000, 'max_income' => 100000, 'base_tax' => 2000, 'rate' => 5.5],
+                ['min_income' => 100000, 'max_income' => 200000, 'base_tax' => 4750, 'rate' => 6],
+                ['min_income' => 200000, 'max_income' => '', 'base_tax' => 10750, 'rate' => 6],
+            ];
+
+        $tax = $this->apply_brackets($taxable, $brackets, $breakdown);
+
+        $tax_diff = $tax - $withholding;
+        $result_label = $tax_diff < 0 ? __('State Tax Return', 'ustc2025') : __('State Tax Owed', 'ustc2025');
+        $breakdown[] = sprintf(__('Connecticut tax - withholding = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+        $breakdown[] = sprintf(__('%s %s', 'ustc2025'), $result_label, number_format($tax_diff, 2));
+
+        return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+    }
+
+    private function georgia_tax($gross, $withholding, $residency, $settings)
+    {
+        $breakdown = [];
+        $deduction = isset($settings['ge_deduction']) ? floatval($settings['ge_deduction']) : 0;
+        $credit = isset($settings['ge_credit']) ? floatval($settings['ge_credit']) : 0;
+        $rate = isset($settings['flat_rate']) ? floatval($settings['flat_rate']) : 0;
+
+        if ($residency === 'resident') {
+            $taxable = $gross - $deduction;
+            $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - GE deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
+            if ($taxable < 0) {
+                $taxable = 0;
+            }
+
+            $tax = $taxable * ($rate / 100);
+            $breakdown[] = sprintf(__('Georgia resident tax = %s * %s%% = %s', 'ustc2025'), number_format($taxable, 2), $rate, number_format($tax, 2));
+            $tax_diff = $tax - $withholding;
+            $breakdown[] = sprintf(__('Resident tax - withholding = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+        } else {
+            $taxable = $gross - $withholding;
+            $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - StateWithholding (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($withholding, 2), number_format($taxable, 2));
+            if ($taxable < 0) {
+                $taxable = 0;
+            }
+
+            $tax = $taxable * ($rate / 100);
+            $breakdown[] = sprintf(__('Georgia non-resident tax = %s * %s%% = %s', 'ustc2025'), number_format($taxable, 2), $rate, number_format($tax, 2));
+            $breakdown[] = sprintf(__('Georgia credit applied for non-resident: %s', 'ustc2025'), number_format($credit, 2));
+            $tax_diff = $tax - $withholding - $credit;
+            $breakdown[] = sprintf(__('Non-resident tax - withholding - credit = %s - %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($credit, 2), number_format($tax_diff, 2));
+        }
+
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 
