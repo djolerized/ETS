@@ -22,7 +22,6 @@ class USTaxCalculator2025
         ['code' => 'DC', 'name' => 'District of Columbia'],
         ['code' => 'DE', 'name' => 'Delaware'],
         ['code' => 'HI', 'name' => 'Hawaii'],
-        ['code' => 'ID', 'name' => 'Idaho'],
         ['code' => 'IA', 'name' => 'Iowa'],
         ['code' => 'KY', 'name' => 'Kentucky'],
         ['code' => 'LA', 'name' => 'Louisiana'],
