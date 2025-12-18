@@ -23,7 +23,6 @@ class USTaxCalculator2025
         ['code' => 'DE', 'name' => 'Delaware'],
         ['code' => 'HI', 'name' => 'Hawaii'],
         ['code' => 'IA', 'name' => 'Iowa'],
-        ['code' => 'ID', 'name' => 'Idaho'],
         ['code' => 'KY', 'name' => 'Kentucky'],
         ['code' => 'LA', 'name' => 'Louisiana'],
         ['code' => 'ME', 'name' => 'Maine'],
@@ -33,9 +32,11 @@ class USTaxCalculator2025
         ['code' => 'MN', 'name' => 'Minnesota'],
         ['code' => 'MO', 'name' => 'Missouri'],
         ['code' => 'NC', 'name' => 'North Carolina'],
+        ['code' => 'ND', 'name' => 'North Dakota'],
         ['code' => 'NJ', 'name' => 'New Jersey'],
         ['code' => 'NY', 'name' => 'New York'],
         ['code' => 'OR', 'name' => 'Oregon'],
+        ['code' => 'PA', 'name' => 'Pennsylvania'],
         ['code' => 'RI', 'name' => 'Rhode Island'],
         ['code' => 'SC', 'name' => 'South Carolina'],
         ['code' => 'UT', 'name' => 'Utah'],
@@ -287,6 +288,17 @@ class USTaxCalculator2025
                 'flat_rate' => 4.25,
                 'brackets' => [],
             ],
+            'ND' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'progressive_brackets',
+                'flat_rate' => '',
+                'brackets' => [
+                    ['min_income' => 0, 'max_income' => 55975, 'base_tax' => 0, 'rate' => 0],
+                    ['min_income' => 55975, 'max_income' => 252325, 'base_tax' => 0, 'rate' => 1.95],
+                    ['min_income' => 252325, 'max_income' => '', 'base_tax' => 3828.83, 'rate' => 2.5],
+                ],
+            ],
             'OR' => [
                 'state_deduction' => 0,
                 'personal_credit' => 0,
@@ -298,6 +310,13 @@ class USTaxCalculator2025
                     ['min_income' => 11050, 'max_income' => 125000, 'base_tax' => 635.875, 'rate' => 8.75],
                     ['min_income' => 125000, 'max_income' => '', 'base_tax' => 10606.5, 'rate' => 9.9],
                 ],
+            ],
+            'PA' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 3.07,
+                'brackets' => [],
             ],
             'RI' => [
                 'state_deduction' => 16000,
@@ -926,6 +945,12 @@ JS;
         if ($code === 'LA') {
             return $this->louisiana_tax($gross, $withholding, $settings, $breakdown);
         }
+        if ($code === 'ND') {
+            return $this->north_dakota_tax($gross, $withholding, $residency, $settings, $breakdown);
+        }
+        if ($code === 'PA') {
+            return $this->pennsylvania_tax($gross, $withholding, $settings, $breakdown);
+        }
 
         $deduction = isset($settings['state_deduction']) ? floatval($settings['state_deduction']) : 0;
         $personal_credit = isset($settings['personal_credit']) ? floatval($settings['personal_credit']) : 0;
@@ -1499,6 +1524,78 @@ JS;
         $breakdown[] = sprintf(__('Tax - withholding = %s - %s = %s', 'ustc2025'), number_format($la_tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
 
         return ['tax' => $la_tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+    }
+
+    private function north_dakota_tax($gross, $withholding, $residency, $settings, &$breakdown)
+    {
+        $federal_settings = $this->get_federal_settings();
+        $federal_deduction = isset($federal_settings['std_deduction']) ? floatval($federal_settings['std_deduction']) : 0;
+
+        if ($residency === 'resident') {
+            $taxable = $gross - $federal_deduction;
+            $breakdown[] = sprintf(__('ND taxable income (resident) = Total income (%s) - Federal deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($federal_deduction, 2), number_format($taxable, 2));
+        } else {
+            $taxable = $gross - $withholding;
+            $breakdown[] = sprintf(__('ND taxable income (non-resident) = Total income (%s) - State withholding (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($withholding, 2), number_format($taxable, 2));
+        }
+
+        if ($taxable < 0) {
+            $taxable = 0;
+        }
+
+        $brackets = isset($settings['brackets']) && !empty($settings['brackets']) ? $settings['brackets'] : [
+            ['min_income' => 0, 'max_income' => 55975, 'rate' => 0],
+            ['min_income' => 55975, 'max_income' => 252325, 'rate' => 1.95],
+            ['min_income' => 252325, 'max_income' => null, 'rate' => 2.5],
+        ];
+
+        usort($brackets, function ($a, $b) {
+            return floatval($a['min_income']) <=> floatval($b['min_income']);
+        });
+
+        $tax = 0;
+        foreach ($brackets as $row) {
+            $min = floatval($row['min_income']);
+            $max = $row['max_income'] === '' ? null : $row['max_income'];
+            $rate = floatval($row['rate']);
+
+            if ($taxable <= $min) {
+                continue;
+            }
+
+            $upper = $max === null ? $taxable : min($max, $taxable);
+            $portion = max(0, $upper - $min);
+            $segment_tax = $portion * ($rate / 100);
+            $tax += $segment_tax;
+
+            $range_label = $max === null ? sprintf(__('above %s', 'ustc2025'), number_format($min, 2)) : sprintf(__('between %s and %s', 'ustc2025'), number_format($min, 2), number_format($max, 2));
+            $breakdown[] = sprintf(__('Bracket %s: (%s - %s) * %s%% = %s', 'ustc2025'), $range_label, number_format($upper, 2), number_format($min, 2), $rate, number_format($segment_tax, 2));
+
+            if ($max !== null && $taxable <= $max) {
+                break;
+            }
+        }
+
+        $tax_diff = $tax - $withholding;
+        $breakdown[] = sprintf(__('ND tax - withholding = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+
+        return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+    }
+
+    private function pennsylvania_tax($gross, $withholding, $settings, &$breakdown)
+    {
+        $flat_rate = isset($settings['flat_rate']) ? floatval($settings['flat_rate']) : 0;
+
+        $taxable = max(0, $gross);
+        $breakdown[] = sprintf(__('TaxableIncome = Total income (%s)', 'ustc2025'), number_format($taxable, 2));
+
+        $pa_tax = $taxable * ($flat_rate / 100);
+        $breakdown[] = sprintf(__('Pennsylvania tax = %s * %s%% = %s', 'ustc2025'), number_format($taxable, 2), $flat_rate, number_format($pa_tax, 2));
+
+        $tax_diff = $pa_tax - $withholding;
+        $breakdown[] = sprintf(__('Tax - withholding = %s - %s = %s', 'ustc2025'), number_format($pa_tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+
+        return ['tax' => $pa_tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 
     private function kentucky_tax($gross, $withholding, $settings, &$breakdown)
