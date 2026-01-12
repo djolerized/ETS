@@ -129,10 +129,11 @@ class USTaxCalculator2025
                 ],
             ],
             'CO' => [
-                'state_deduction' => 15600,
+                'state_deduction' => 0,
                 'personal_credit' => 0,
                 'calculation_mode' => 'flat_rate',
                 'flat_rate' => 4.4,
+                'co_nonresident_flat_rate' => 0.044,
                 'brackets' => [],
             ],
             'CT' => [
@@ -644,6 +645,18 @@ JS;
                 $clean[$code]['ar_tax_credits'] = isset($state_input['ar_tax_credits']) ? floatval($state_input['ar_tax_credits']) : floatval($defaults[$code]['ar_tax_credits']);
             }
 
+            if (isset($defaults[$code]['co_nonresident_flat_rate'])) {
+                $rate_input = isset($state_input['co_nonresident_flat_rate']) ? $state_input['co_nonresident_flat_rate'] : $defaults[$code]['co_nonresident_flat_rate'];
+                $rate_value = is_numeric($rate_input) ? floatval($rate_input) : 0;
+                if ($rate_value > 1) {
+                    $rate_value = $rate_value / 100;
+                }
+                if ($rate_value <= 0) {
+                    $rate_value = floatval($defaults[$code]['co_nonresident_flat_rate']);
+                }
+                $clean[$code]['co_nonresident_flat_rate'] = $rate_value;
+            }
+
             if (isset($state_input['brackets']) && is_array($state_input['brackets'])) {
                 foreach ($state_input['brackets'] as $row) {
                     if ($row === null) {
@@ -800,6 +813,11 @@ JS;
                 } elseif ($code === 'LA') {
                     echo '<div class="ustc2025-col"><label>' . esc_html__('Louisiana standard deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" /></div>';
                     echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" />';
+                } elseif ($code === 'CO') {
+                    $co_nonresident_rate = isset($state_settings['co_nonresident_flat_rate']) ? $state_settings['co_nonresident_flat_rate'] : '';
+                    echo '<div class="ustc2025-col"><label>' . esc_html__('State deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" /></div>';
+                    echo '<div class="ustc2025-col"><label>' . esc_html__('Personal credit (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" /></div>';
+                    echo '<div class="ustc2025-col"><label>' . esc_html__('Colorado (CO) - Nonresident flat rate', 'ustc2025') . '</label><input type="number" step="0.0001" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][co_nonresident_flat_rate]" value="' . esc_attr($co_nonresident_rate) . '" /><small>' . esc_html__('Enter decimal rate (example: 0.044 for 4.40%).', 'ustc2025') . '</small></div>';
                 } else {
                     echo '<div class="ustc2025-col"><label>' . esc_html__('State deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" /></div>';
                     echo '<div class="ustc2025-col"><label>' . esc_html__('Personal credit (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" /></div>';
@@ -1964,22 +1982,25 @@ JS;
 
     private function colorado_tax($gross, $withholding, $residency, $settings, &$breakdown)
     {
-        $deduction = 15600;
-        $resident_rate = 4.40;
-        $nonresident_rate = 4.25;
+        $resident_rate = 0.044;
+        $nonresident_rate = isset($settings['co_nonresident_flat_rate']) ? floatval($settings['co_nonresident_flat_rate']) : 0.044;
+
+        if ($nonresident_rate <= 0) {
+            $nonresident_rate = 0.044;
+        }
 
         if ($residency === 'resident') {
-            $taxable = max(0, $gross - $deduction);
+            $taxable = max(0, $gross);
             $rate = $resident_rate;
-            $breakdown[] = sprintf(__('TaxableIncome = Total income (%s) - Colorado deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
+            $breakdown[] = sprintf(__('TaxableIncome = Total income (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($taxable, 2));
         } else {
-            $taxable = $gross;
+            $taxable = max(0, $gross);
             $rate = $nonresident_rate;
             $breakdown[] = sprintf(__('TaxableIncome = Total income (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($taxable, 2));
         }
 
-        $tax = $taxable * ($rate / 100);
-        $breakdown[] = sprintf(__('Colorado tax = %s * %s%% = %s', 'ustc2025'), number_format($taxable, 2), number_format($rate, 2), number_format($tax, 2));
+        $tax = $taxable * $rate;
+        $breakdown[] = sprintf(__('Colorado tax = %s * %s = %s', 'ustc2025'), number_format($taxable, 2), number_format($rate, 4), number_format($tax, 2));
         $tax_diff = $tax - $withholding;
         $breakdown[] = sprintf(__('Tax - withholding = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
         $difference = $withholding - $tax;
