@@ -2062,10 +2062,6 @@ JS;
 
     private function rhode_island_tax($gross, $withholding, $residency, $settings, &$breakdown)
     {
-        // Verification example (RI):
-        // total_income=21289, state_withholding=795
-        // nonresident -> taxable=16189, tax=607.09, difference=187.91 (Imate povrat)
-        // resident -> taxable=5289, tax=198.34, difference=596.66 (Imate povrat)
         $resident_deduction = 16000;
         $nonresident_deduction = 5100;
         $deduction = $residency === 'resident' ? $resident_deduction : $nonresident_deduction;
@@ -2086,20 +2082,18 @@ JS;
         }
 
         $tax = round($tax, 2);
-        $difference = round($withholding - $tax, 2);
+        $refund = round($withholding - $tax, 2);
         $tax_diff = round($tax - $withholding, 2);
 
         $breakdown[] = sprintf(__('Rhode Island tax computed: %s', 'ustc2025'), number_format($tax, 2));
-        $breakdown[] = sprintf(__('Difference = StateWithholding (%s) - StateTax (%s) = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format($difference, 2));
+        $breakdown[] = sprintf(__('Povracaj = StateWithholding (%s) - StateTax (%s) = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format($refund, 2));
 
-        if ($difference > 0) {
-            $message = __('Imate povrat', 'ustc2025');
-        } elseif ($difference < 0) {
-            $message = __('Morate da doplatite', 'ustc2025');
-        } else {
-            $message = __('Na nuli ste', 'ustc2025');
+        if ($refund > 0) {
+            $breakdown[] = sprintf(__('Imate povrat %s', 'ustc2025'), number_format($refund, 2));
+        } elseif ($refund < 0) {
+            $breakdown[] = sprintf(__('Morate da doplatite %s', 'ustc2025'), number_format(abs($refund), 2));
         }
-        $breakdown[] = sprintf(__('RI status: %s', 'ustc2025'), $message);
+
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 }
