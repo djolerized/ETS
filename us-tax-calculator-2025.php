@@ -2062,21 +2062,44 @@ JS;
 
     private function rhode_island_tax($gross, $withholding, $residency, $settings, &$breakdown)
     {
+        // Verification example (RI):
+        // total_income=21289, state_withholding=795
+        // nonresident -> taxable=16189, tax=607.09, difference=187.91 (Imate povrat)
+        // resident -> taxable=5289, tax=198.34, difference=596.66 (Imate povrat)
         $resident_deduction = 16000;
         $nonresident_deduction = 5100;
         $deduction = $residency === 'resident' ? $resident_deduction : $nonresident_deduction;
         $taxable = max(0, $gross - $deduction);
         $breakdown[] = sprintf(__('TaxableIncome = Total income (%s) - RI personal deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
-        if ($taxable <= 79900) {
-            $tax = 0.0375 * $taxable;
-        } elseif ($taxable <= 181650) {
-            $tax = 2996.25 + 0.0475 * ($taxable - 79900);
+        $b1 = 79900;
+        $b2 = 181650;
+        $r1 = 0.0375;
+        $r2 = 0.0475;
+        $r3 = 0.0599;
+
+        if ($taxable <= $b1) {
+            $tax = $taxable * $r1;
+        } elseif ($taxable <= $b2) {
+            $tax = ($b1 * $r1) + (($taxable - $b1) * $r2);
         } else {
-            $tax = 7829.38 + 0.0599 * ($taxable - 181650);
+            $tax = ($b1 * $r1) + (($b2 - $b1) * $r2) + (($taxable - $b2) * $r3);
         }
+
+        $tax = round($tax, 2);
+        $difference = round($withholding - $tax, 2);
+        $tax_diff = round($tax - $withholding, 2);
+
         $breakdown[] = sprintf(__('Rhode Island tax computed: %s', 'ustc2025'), number_format($tax, 2));
-        $tax_diff = $tax - $withholding;
-        $breakdown[] = sprintf(__('Tax - withholding = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+        $breakdown[] = sprintf(__('Difference = StateWithholding (%s) - StateTax (%s) = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format($difference, 2));
+
+        if ($difference > 0) {
+            $message = __('Imate povrat', 'ustc2025');
+        } elseif ($difference < 0) {
+            $message = __('Morate da doplatite', 'ustc2025');
+        } else {
+            $message = __('Na nuli ste', 'ustc2025');
+        }
+        $breakdown[] = sprintf(__('RI status: %s', 'ustc2025'), $message);
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 }
