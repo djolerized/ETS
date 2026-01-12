@@ -1158,7 +1158,9 @@ JS;
         }
 
         $deduction = isset($settings['state_deduction']) ? floatval($settings['state_deduction']) : 0;
-        $personal_credit = isset($settings['personal_credit']) ? floatval($settings['personal_credit']) : 0;
+        $personal_credit = $this->state_supports_personal_credit($code, $settings)
+            ? floatval($settings['personal_credit'])
+            : 0;
         $taxable = $gross - $deduction;
         $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - state_deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
         if ($taxable < 0) {
@@ -1180,9 +1182,22 @@ JS;
             $tax = $this->apply_brackets($taxable, $brackets, $breakdown);
         }
 
-        $tax_diff = $tax - $withholding - $personal_credit;
-        $breakdown[] = sprintf(__('Tax - withholding - credit = %s - %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($personal_credit, 2), number_format($tax_diff, 2));
+        if ($personal_credit > 0) {
+            $tax_diff = $tax - $withholding - $personal_credit;
+            $breakdown[] = sprintf(__('Tax - withholding - credit = %s - %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($personal_credit, 2), number_format($tax_diff, 2));
+        } else {
+            $tax_diff = $tax - $withholding;
+            $breakdown[] = sprintf(__('Tax - withholding = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+        }
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+    }
+
+    private function state_supports_personal_credit($state_code, $settings)
+    {
+        $states_with_personal_credit = ['CA', 'DE', 'HI'];
+        return isset($settings['personal_credit'])
+            && is_numeric($settings['personal_credit'])
+            && in_array($state_code, $states_with_personal_credit, true);
     }
 
     private function arkansas_tax($gross, $withholding, $settings, $residency)
@@ -2062,10 +2077,6 @@ JS;
 
     private function rhode_island_tax($gross, $withholding, $residency, $settings, &$breakdown)
     {
-        // Verification example (RI):
-        // total_income=21289, state_withholding=795
-        // nonresident -> taxable=16189, tax=607.09, difference=187.91 (Imate povrat)
-        // resident -> taxable=5289, tax=198.34, difference=596.66 (Imate povrat)
         $resident_deduction = 16000;
         $nonresident_deduction = 5100;
         $deduction = $residency === 'resident' ? $resident_deduction : $nonresident_deduction;
@@ -2086,20 +2097,18 @@ JS;
         }
 
         $tax = round($tax, 2);
-        $difference = round($withholding - $tax, 2);
+        $refund = round($withholding - $tax, 2);
         $tax_diff = round($tax - $withholding, 2);
 
         $breakdown[] = sprintf(__('Rhode Island tax computed: %s', 'ustc2025'), number_format($tax, 2));
-        $breakdown[] = sprintf(__('Difference = StateWithholding (%s) - StateTax (%s) = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format($difference, 2));
+        $breakdown[] = sprintf(__('Povracaj = StateWithholding (%s) - StateTax (%s) = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format($refund, 2));
 
-        if ($difference > 0) {
-            $message = __('Imate povrat', 'ustc2025');
-        } elseif ($difference < 0) {
-            $message = __('Morate da doplatite', 'ustc2025');
-        } else {
-            $message = __('Na nuli ste', 'ustc2025');
+        if ($refund > 0) {
+            $breakdown[] = sprintf(__('Imate povrat %s', 'ustc2025'), number_format($refund, 2));
+        } elseif ($refund < 0) {
+            $breakdown[] = sprintf(__('Morate da doplatite %s', 'ustc2025'), number_format(abs($refund), 2));
         }
-        $breakdown[] = sprintf(__('RI status: %s', 'ustc2025'), $message);
+
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 }
