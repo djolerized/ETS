@@ -1964,14 +1964,30 @@ JS;
 
     private function colorado_tax($gross, $withholding, $residency, $settings, &$breakdown)
     {
-        $deduction = floatval($settings['deduction']);
-        $rate = floatval($settings['rate']);
-        $taxable = $residency === 'resident' ? ($gross - $deduction) : $gross;
-        $breakdown[] = sprintf(__('TaxableIncome = %s', 'ustc2025'), number_format($taxable, 2));
-        $tax = $taxable * $rate;
-        $breakdown[] = sprintf(__('Colorado tax = %s * %s = %s', 'ustc2025'), number_format($taxable, 2), $rate, number_format($tax, 2));
+        $deduction = 15600;
+        $resident_rate = 4.40;
+        $nonresident_rate = 4.25;
+
+        if ($residency === 'resident') {
+            $taxable = max(0, $gross - $deduction);
+            $rate = $resident_rate;
+            $breakdown[] = sprintf(__('TaxableIncome = Total income (%s) - Colorado deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
+        } else {
+            $taxable = $gross;
+            $rate = $nonresident_rate;
+            $breakdown[] = sprintf(__('TaxableIncome = Total income (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($taxable, 2));
+        }
+
+        $tax = $taxable * ($rate / 100);
+        $breakdown[] = sprintf(__('Colorado tax = %s * %s%% = %s', 'ustc2025'), number_format($taxable, 2), number_format($rate, 2), number_format($tax, 2));
         $tax_diff = $tax - $withholding;
         $breakdown[] = sprintf(__('Tax - withholding = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+        $difference = $withholding - $tax;
+        if ($difference > 0) {
+            $breakdown[] = sprintf(__('Tax refund %s', 'ustc2025'), number_format($difference, 2));
+        } elseif ($difference < 0) {
+            $breakdown[] = sprintf(__('Tax owed %s', 'ustc2025'), number_format($difference, 2));
+        }
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 
