@@ -16,6 +16,7 @@ class USTaxCalculator2025
     private $option_state = 'us_tax_calculator_states_2025';
     private $states_info = [
         ['code' => 'AL', 'name' => 'Alabama'],
+        ['code' => 'AK', 'name' => 'Alaska'],
         ['code' => 'AR', 'name' => 'Arkansas'],
         ['code' => 'AZ', 'name' => 'Arizona'],
         ['code' => 'CA', 'name' => 'California'],
@@ -23,6 +24,7 @@ class USTaxCalculator2025
         ['code' => 'CT', 'name' => 'Connecticut'],
         ['code' => 'DC', 'name' => 'District of Columbia'],
         ['code' => 'DE', 'name' => 'Delaware'],
+        ['code' => 'FL', 'name' => 'Florida'],
         ['code' => 'GE', 'name' => 'Georgia'],
         ['code' => 'HI', 'name' => 'Hawaii'],
         ['code' => 'IA', 'name' => 'Iowa'],
@@ -36,15 +38,22 @@ class USTaxCalculator2025
         ['code' => 'MO', 'name' => 'Missouri'],
         ['code' => 'NC', 'name' => 'North Carolina'],
         ['code' => 'ND', 'name' => 'North Dakota'],
+        ['code' => 'NH', 'name' => 'New Hampshire'],
+        ['code' => 'NV', 'name' => 'Nevada'],
         ['code' => 'NJ', 'name' => 'New Jersey'],
         ['code' => 'NY', 'name' => 'New York'],
         ['code' => 'OR', 'name' => 'Oregon'],
         ['code' => 'PA', 'name' => 'Pennsylvania'],
         ['code' => 'RI', 'name' => 'Rhode Island'],
         ['code' => 'SC', 'name' => 'South Carolina'],
+        ['code' => 'SD', 'name' => 'South Dakota'],
+        ['code' => 'TN', 'name' => 'Tennessee'],
+        ['code' => 'TX', 'name' => 'Texas'],
         ['code' => 'UT', 'name' => 'Utah'],
         ['code' => 'VA', 'name' => 'Virginia'],
+        ['code' => 'WA', 'name' => 'Washington'],
         ['code' => 'WI', 'name' => 'Wisconsin'],
+        ['code' => 'WY', 'name' => 'Wyoming'],
     ];
 
     public function __construct()
@@ -76,6 +85,13 @@ class USTaxCalculator2025
                     ['min_income' => 500, 'max_income' => 3000, 'base_tax' => 10, 'rate' => 4],
                     ['min_income' => 3000, 'max_income' => '', 'base_tax' => 110, 'rate' => 5],
                 ],
+            ],
+            'AK' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 0,
+                'brackets' => [],
             ],
             'AR' => [
                 'state_deduction' => 0,
@@ -212,6 +228,13 @@ class USTaxCalculator2025
                     ['min_income' => 60000, 'max_income' => '', 'base_tax' => 2943.5, 'rate' => 6.6],
                 ],
             ],
+            'FL' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 0,
+                'brackets' => [],
+            ],
             'ME' => [
                 'state_deduction' => 0,
                 'personal_credit' => 0,
@@ -343,6 +366,20 @@ class USTaxCalculator2025
                     ['min_income' => 252325, 'max_income' => '', 'base_tax' => 3828.83, 'rate' => 2.5],
                 ],
             ],
+            'NH' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 0,
+                'brackets' => [],
+            ],
+            'NV' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 0,
+                'brackets' => [],
+            ],
             'OR' => [
                 'state_deduction' => 0,
                 'personal_credit' => 0,
@@ -384,6 +421,27 @@ class USTaxCalculator2025
                     ['min_income' => 17830, 'max_income' => '', 'base_tax' => 428.1, 'rate' => 6],
                 ],
             ],
+            'SD' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 0,
+                'brackets' => [],
+            ],
+            'TN' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 0,
+                'brackets' => [],
+            ],
+            'TX' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 0,
+                'brackets' => [],
+            ],
             'UT' => [
                 'state_deduction' => 0,
                 'personal_credit' => 0,
@@ -405,6 +463,13 @@ class USTaxCalculator2025
                     ['min_income' => 17000, 'max_income' => '', 'base_tax' => 720, 'rate' => 5.75],
                 ],
             ],
+            'WA' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 0,
+                'brackets' => [],
+            ],
             'WI' => [
                 'state_deduction' => 14260,
                 'personal_credit' => 0,
@@ -416,6 +481,13 @@ class USTaxCalculator2025
                     ['min_income' => 50480, 'max_income' => 323290, 'base_tax' => 2089, 'rate' => 5.3],
                     ['min_income' => 323290, 'max_income' => '', 'base_tax' => 16547.93, 'rate' => 7.65],
                 ],
+            ],
+            'WY' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 0,
+                'brackets' => [],
             ],
         ];
     }
@@ -1127,6 +1199,10 @@ JS;
         }
         if ($code === 'DC') {
             $breakdown[] = __('Full refund of state withholding applied.', 'ustc2025');
+            return ['tax' => 0, 'tax_diff' => -$withholding, 'breakdown' => $breakdown];
+        }
+        if (in_array($code, ['AK', 'FL', 'NV', 'NH', 'SD', 'TN', 'TX', 'WA', 'WY'], true)) {
+            $breakdown[] = __('No state income tax; full refund of state withholding applied.', 'ustc2025');
             return ['tax' => 0, 'tax_diff' => -$withholding, 'breakdown' => $breakdown];
         }
         if ($code === 'ME') {
