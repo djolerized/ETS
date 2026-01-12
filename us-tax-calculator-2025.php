@@ -1905,29 +1905,44 @@ JS;
 
     private function wisconsin_tax($gross, $withholding, $residency, $settings, &$breakdown)
     {
+        // Test (resident vs nonresident should differ):
+        // total_income=20000, state_withholding=500
+        // resident: deduction=14260, taxable=5740
+        // nonresident: deduction=700, taxable=19300
         $resident_deduction = 14260;
         $nonresident_deduction = 700;
-        $deduction = $residency === 'resident' ? $resident_deduction : $nonresident_deduction;
+        $deduction = strtolower((string) $residency) === 'resident' ? $resident_deduction : $nonresident_deduction;
         $taxable = max(0, $gross - $deduction);
+        $breakdown[] = sprintf(__('WI deduction used: %s', 'ustc2025'), number_format($deduction, 2));
         $breakdown[] = sprintf(__('TaxableIncome = Total income (%s) - WI deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
-        if ($taxable <= 14680) {
-            $tax = 0.035 * $taxable;
-        } elseif ($taxable <= 29370) {
-            $tax = 14680 * 0.035 + 0.044 * ($taxable - 14680);
-        } elseif ($taxable <= 323290) {
-            $tax = 14680 * 0.035 + (29370 - 14680) * 0.044 + 0.053 * ($taxable - 29370);
+        $b1 = 14680;
+        $b2 = 29370;
+        $b3 = 323290;
+        $r1 = 0.035;
+        $r2 = 0.044;
+        $r3 = 0.053;
+        $r4 = 0.0765;
+        if ($taxable <= $b1) {
+            $tax = $taxable * $r1;
+        } elseif ($taxable <= $b2) {
+            $tax = ($b1 * $r1) + (($taxable - $b1) * $r2);
+        } elseif ($taxable <= $b3) {
+            $tax = ($b1 * $r1) + (($b2 - $b1) * $r2) + (($taxable - $b2) * $r3);
         } else {
-            $tax = 14680 * 0.035 + (29370 - 14680) * 0.044 + (323290 - 29370) * 0.053 + 0.0765 * ($taxable - 323290);
+            $tax = ($b1 * $r1) + (($b2 - $b1) * $r2) + (($b3 - $b2) * $r3) + (($taxable - $b3) * $r4);
         }
+        $tax = round($tax, 2);
+        $difference = round($withholding - $tax, 2);
         $breakdown[] = sprintf(__('Wisconsin tax computed: %s', 'ustc2025'), number_format($tax, 2));
-        $refund = $withholding - $tax;
-        $breakdown[] = sprintf(__('Povracaj = StateWithholding (%s) - StateTax (%s) = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format($refund, 2));
-        if ($refund > 0) {
-            $breakdown[] = sprintf(__('Tax refund %s', 'ustc2025'), number_format($refund, 2));
-        } elseif ($refund < 0) {
-            $breakdown[] = sprintf(__('Tax owed %s', 'ustc2025'), number_format(abs($refund), 2));
+        $breakdown[] = sprintf(__('Difference = StateWithholding (%s) - StateTax (%s) = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format($difference, 2));
+        if ($difference > 0) {
+            $breakdown[] = sprintf(__('Tax refund %s', 'ustc2025'), number_format($difference, 2));
+        } elseif ($difference < 0) {
+            $breakdown[] = sprintf(__('Tax owed %s', 'ustc2025'), number_format(abs($difference), 2));
+        } else {
+            $breakdown[] = __('Even', 'ustc2025');
         }
-        $tax_diff = $tax - $withholding;
+        $tax_diff = round($tax - $withholding, 2);
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 
