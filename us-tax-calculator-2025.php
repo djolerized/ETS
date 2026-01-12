@@ -1905,21 +1905,29 @@ JS;
 
     private function wisconsin_tax($gross, $withholding, $residency, $settings, &$breakdown)
     {
-        $deduction = $residency === 'resident' ? floatval($settings['deduction_resident']) : floatval($settings['deduction_nonresident']);
-        $taxable = $gross - $deduction;
-        $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
+        $resident_deduction = 14260;
+        $nonresident_deduction = 700;
+        $deduction = $residency === 'resident' ? $resident_deduction : $nonresident_deduction;
+        $taxable = max(0, $gross - $deduction);
+        $breakdown[] = sprintf(__('TaxableIncome = Total income (%s) - WI deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
         if ($taxable <= 14680) {
             $tax = 0.035 * $taxable;
-        } elseif ($taxable <= 50480) {
+        } elseif ($taxable <= 29370) {
             $tax = 14680 * 0.035 + 0.044 * ($taxable - 14680);
         } elseif ($taxable <= 323290) {
-            $tax = 14680 * 0.035 + (50480 - 14680) * 0.044 + 0.053 * ($taxable - 50480);
+            $tax = 14680 * 0.035 + (29370 - 14680) * 0.044 + 0.053 * ($taxable - 29370);
         } else {
-            $tax = 14680 * 0.035 + (50480 - 14680) * 0.044 + (323290 - 50480) * 0.053 + 0.0765 * ($taxable - 323290);
+            $tax = 14680 * 0.035 + (29370 - 14680) * 0.044 + (323290 - 29370) * 0.053 + 0.0765 * ($taxable - 323290);
         }
         $breakdown[] = sprintf(__('Wisconsin tax computed: %s', 'ustc2025'), number_format($tax, 2));
+        $refund = $withholding - $tax;
+        $breakdown[] = sprintf(__('Povracaj = StateWithholding (%s) - StateTax (%s) = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format($refund, 2));
+        if ($refund > 0) {
+            $breakdown[] = sprintf(__('Tax refund %s', 'ustc2025'), number_format($refund, 2));
+        } elseif ($refund < 0) {
+            $breakdown[] = sprintf(__('Tax owed %s', 'ustc2025'), number_format(abs($refund), 2));
+        }
         $tax_diff = $tax - $withholding;
-        $breakdown[] = sprintf(__('Tax - withholding = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 
