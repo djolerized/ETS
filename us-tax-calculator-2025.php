@@ -16,6 +16,7 @@ class USTaxCalculator2025
     private $option_state = 'us_tax_calculator_states_2025';
     private $states_info = [
         ['code' => 'AL', 'name' => 'Alabama'],
+        ['code' => 'AK', 'name' => 'Alaska'],
         ['code' => 'AR', 'name' => 'Arkansas'],
         ['code' => 'AZ', 'name' => 'Arizona'],
         ['code' => 'CA', 'name' => 'California'],
@@ -23,6 +24,7 @@ class USTaxCalculator2025
         ['code' => 'CT', 'name' => 'Connecticut'],
         ['code' => 'DC', 'name' => 'District of Columbia'],
         ['code' => 'DE', 'name' => 'Delaware'],
+        ['code' => 'FL', 'name' => 'Florida'],
         ['code' => 'GE', 'name' => 'Georgia'],
         ['code' => 'HI', 'name' => 'Hawaii'],
         ['code' => 'IA', 'name' => 'Iowa'],
@@ -36,15 +38,22 @@ class USTaxCalculator2025
         ['code' => 'MO', 'name' => 'Missouri'],
         ['code' => 'NC', 'name' => 'North Carolina'],
         ['code' => 'ND', 'name' => 'North Dakota'],
+        ['code' => 'NH', 'name' => 'New Hampshire'],
+        ['code' => 'NV', 'name' => 'Nevada'],
         ['code' => 'NJ', 'name' => 'New Jersey'],
         ['code' => 'NY', 'name' => 'New York'],
         ['code' => 'OR', 'name' => 'Oregon'],
         ['code' => 'PA', 'name' => 'Pennsylvania'],
         ['code' => 'RI', 'name' => 'Rhode Island'],
         ['code' => 'SC', 'name' => 'South Carolina'],
+        ['code' => 'SD', 'name' => 'South Dakota'],
+        ['code' => 'TN', 'name' => 'Tennessee'],
+        ['code' => 'TX', 'name' => 'Texas'],
         ['code' => 'UT', 'name' => 'Utah'],
         ['code' => 'VA', 'name' => 'Virginia'],
+        ['code' => 'WA', 'name' => 'Washington'],
         ['code' => 'WI', 'name' => 'Wisconsin'],
+        ['code' => 'WY', 'name' => 'Wyoming'],
     ];
 
     public function __construct()
@@ -76,6 +85,13 @@ class USTaxCalculator2025
                     ['min_income' => 500, 'max_income' => 3000, 'base_tax' => 10, 'rate' => 4],
                     ['min_income' => 3000, 'max_income' => '', 'base_tax' => 110, 'rate' => 5],
                 ],
+            ],
+            'AK' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 0,
+                'brackets' => [],
             ],
             'AR' => [
                 'state_deduction' => 0,
@@ -212,6 +228,13 @@ class USTaxCalculator2025
                     ['min_income' => 60000, 'max_income' => '', 'base_tax' => 2943.5, 'rate' => 6.6],
                 ],
             ],
+            'FL' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 0,
+                'brackets' => [],
+            ],
             'ME' => [
                 'state_deduction' => 0,
                 'personal_credit' => 0,
@@ -343,6 +366,20 @@ class USTaxCalculator2025
                     ['min_income' => 252325, 'max_income' => '', 'base_tax' => 3828.83, 'rate' => 2.5],
                 ],
             ],
+            'NH' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 0,
+                'brackets' => [],
+            ],
+            'NV' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 0,
+                'brackets' => [],
+            ],
             'OR' => [
                 'state_deduction' => 0,
                 'personal_credit' => 0,
@@ -384,6 +421,27 @@ class USTaxCalculator2025
                     ['min_income' => 17830, 'max_income' => '', 'base_tax' => 428.1, 'rate' => 6],
                 ],
             ],
+            'SD' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 0,
+                'brackets' => [],
+            ],
+            'TN' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 0,
+                'brackets' => [],
+            ],
+            'TX' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 0,
+                'brackets' => [],
+            ],
             'UT' => [
                 'state_deduction' => 0,
                 'personal_credit' => 0,
@@ -405,6 +463,13 @@ class USTaxCalculator2025
                     ['min_income' => 17000, 'max_income' => '', 'base_tax' => 720, 'rate' => 5.75],
                 ],
             ],
+            'WA' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 0,
+                'brackets' => [],
+            ],
             'WI' => [
                 'state_deduction' => 14260,
                 'personal_credit' => 0,
@@ -416,6 +481,13 @@ class USTaxCalculator2025
                     ['min_income' => 50480, 'max_income' => 323290, 'base_tax' => 2089, 'rate' => 5.3],
                     ['min_income' => 323290, 'max_income' => '', 'base_tax' => 16547.93, 'rate' => 7.65],
                 ],
+            ],
+            'WY' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 0,
+                'brackets' => [],
             ],
         ];
     }
@@ -910,7 +982,7 @@ JS;
         echo '</form>';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ustc_control_gross'])) {
-            $federal = $this->calculate_federal($gross, $fwh, $residency, $federal_settings);
+            $federal = $this->calculate_federal($gross, $fwh, $swh, $residency, $federal_settings);
             $state_result = $this->calculate_state($state, $gross, $swh, $residency, $this->get_state_settings_by_name($state, $state_settings), $federal);
             echo '<div class="ustc2025-breakdown">';
             echo '<h4>' . esc_html__('Federal breakdown', 'ustc2025') . '</h4>';
@@ -979,8 +1051,8 @@ JS;
         echo '</div>';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ustc_calculate'])) {
-            $federal_resident = $this->calculate_federal($gross, $fwh, 'resident', $federal_settings);
-            $federal_nonresident = $this->calculate_federal($gross, $fwh, 'nonresident', $federal_settings);
+            $federal_resident = $this->calculate_federal($gross, $fwh, $swh, 'resident', $federal_settings);
+            $federal_nonresident = $this->calculate_federal($gross, $fwh, $swh, 'nonresident', $federal_settings);
             $selected_state_settings = $this->get_state_settings_by_name($state, $state_settings);
             $state_resident = $this->calculate_state($state, $gross, $swh, 'resident', $selected_state_settings, $federal_resident);
             $state_nonresident = $this->calculate_state($state, $gross, $swh, 'nonresident', $selected_state_settings, $federal_nonresident);
@@ -1033,7 +1105,7 @@ JS;
         return '<span class="' . esc_attr($class) . '">' . esc_html($message . ' ' . $amount . ' USD') . '</span>';
     }
 
-    private function calculate_federal($gross, $withholding, $residency, $settings)
+    private function calculate_federal($gross, $federal_withholding, $state_withholding, $residency, $settings)
     {
         $breakdown = [];
         $std_deduction = floatval($settings['std_deduction']);
@@ -1041,26 +1113,35 @@ JS;
             $agi = $gross - $std_deduction;
             $breakdown[] = sprintf(__('AGI = GrossIncome (%s) - StdDeduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($std_deduction, 2), number_format($agi, 2));
         } else {
-            $agi = $gross - $withholding;
-            $breakdown[] = sprintf(__('AGI = GrossIncome (%s) - FederalWithholding (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($withholding, 2), number_format($agi, 2));
+            $agi = $gross - $state_withholding;
+            $breakdown[] = sprintf(__('TaxableIncome = TotalIncome (%s) - StateWithholding (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($state_withholding, 2), number_format($agi, 2));
         }
         if ($agi < 0) {
             $agi = 0;
         }
-        $brackets = [
-            ['limit' => 11925, 'rate' => 0.10],
-            ['limit' => 48475, 'rate' => 0.12],
-            ['limit' => 103350, 'rate' => 0.22],
-            ['limit' => 197300, 'rate' => 0.24],
-            ['limit' => 250525, 'rate' => 0.32],
-            ['limit' => 626350, 'rate' => 0.35],
-            ['limit' => null, 'rate' => 0.37],
-        ];
+        if ($residency === 'resident') {
+            $brackets = [
+                ['limit' => 11925, 'rate' => 0.10],
+                ['limit' => 48475, 'rate' => 0.12],
+                ['limit' => 103350, 'rate' => 0.22],
+                ['limit' => 197300, 'rate' => 0.24],
+                ['limit' => 250525, 'rate' => 0.32],
+                ['limit' => 626350, 'rate' => 0.35],
+                ['limit' => null, 'rate' => 0.37],
+            ];
+        } else {
+            $brackets = [
+                ['limit' => 11925, 'rate' => 0.10],
+                ['limit' => 48475, 'rate' => 0.12],
+                ['limit' => 103350, 'rate' => 0.22],
+                ['limit' => 197300, 'rate' => 0.24],
+            ];
+        }
         $tax_data = $this->progressive_tax($agi, $brackets);
         $breakdown = array_merge($breakdown, $tax_data['breakdown']);
         $tax = $tax_data['tax'];
-        $tax_diff = $tax - $withholding;
-        $breakdown[] = sprintf(__('Tax - FederalWithholding = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+        $tax_diff = $tax - $federal_withholding;
+        $breakdown[] = sprintf(__('Tax - FederalWithholding = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($federal_withholding, 2), number_format($tax_diff, 2));
         return [
             'tax' => $tax,
             'tax_diff' => $tax_diff,
@@ -1120,6 +1201,10 @@ JS;
             $breakdown[] = __('Full refund of state withholding applied.', 'ustc2025');
             return ['tax' => 0, 'tax_diff' => -$withholding, 'breakdown' => $breakdown];
         }
+        if (in_array($code, ['AK', 'FL', 'NV', 'NH', 'SD', 'TN', 'TX', 'WA', 'WY'], true)) {
+            $breakdown[] = __('No state income tax; full refund of state withholding applied.', 'ustc2025');
+            return ['tax' => 0, 'tax_diff' => -$withholding, 'breakdown' => $breakdown];
+        }
         if ($code === 'ME') {
             return $this->maine_tax($gross, $withholding, $residency, $settings, $breakdown);
         }
@@ -1149,7 +1234,9 @@ JS;
         }
 
         $deduction = isset($settings['state_deduction']) ? floatval($settings['state_deduction']) : 0;
-        $personal_credit = isset($settings['personal_credit']) ? floatval($settings['personal_credit']) : 0;
+        $personal_credit = $this->state_supports_personal_credit($code, $settings)
+            ? floatval($settings['personal_credit'])
+            : 0;
         $taxable = $gross - $deduction;
         $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - state_deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
         if ($taxable < 0) {
@@ -1171,9 +1258,22 @@ JS;
             $tax = $this->apply_brackets($taxable, $brackets, $breakdown);
         }
 
-        $tax_diff = $tax - $withholding - $personal_credit;
-        $breakdown[] = sprintf(__('Tax - withholding - credit = %s - %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($personal_credit, 2), number_format($tax_diff, 2));
+        if ($personal_credit > 0) {
+            $tax_diff = $tax - $withholding - $personal_credit;
+            $breakdown[] = sprintf(__('Tax - withholding - credit = %s - %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($personal_credit, 2), number_format($tax_diff, 2));
+        } else {
+            $tax_diff = $tax - $withholding;
+            $breakdown[] = sprintf(__('Tax - withholding = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+        }
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+    }
+
+    private function state_supports_personal_credit($state_code, $settings)
+    {
+        $states_with_personal_credit = ['CA', 'DE', 'HI'];
+        return isset($settings['personal_credit'])
+            && is_numeric($settings['personal_credit'])
+            && in_array($state_code, $states_with_personal_credit, true);
     }
 
     private function arkansas_tax($gross, $withholding, $settings, $residency)
@@ -2053,19 +2153,38 @@ JS;
 
     private function rhode_island_tax($gross, $withholding, $residency, $settings, &$breakdown)
     {
-        $deduction = $residency === 'resident' ? floatval($settings['deduction_resident']) : floatval($settings['deduction_nonresident']);
-        $taxable = $gross - $deduction;
-        $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
-        if ($taxable <= 79900) {
-            $tax = 0.0375 * $taxable;
-        } elseif ($taxable <= 181650) {
-            $tax = 2996.25 + 0.0475 * ($taxable - 79900);
+        $resident_deduction = 16000;
+        $nonresident_deduction = 5100;
+        $deduction = $residency === 'resident' ? $resident_deduction : $nonresident_deduction;
+        $taxable = max(0, $gross - $deduction);
+        $breakdown[] = sprintf(__('TaxableIncome = Total income (%s) - RI personal deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
+        $b1 = 79900;
+        $b2 = 181650;
+        $r1 = 0.0375;
+        $r2 = 0.0475;
+        $r3 = 0.0599;
+
+        if ($taxable <= $b1) {
+            $tax = $taxable * $r1;
+        } elseif ($taxable <= $b2) {
+            $tax = ($b1 * $r1) + (($taxable - $b1) * $r2);
         } else {
-            $tax = 7829.38 + 0.0599 * ($taxable - 181650);
+            $tax = ($b1 * $r1) + (($b2 - $b1) * $r2) + (($taxable - $b2) * $r3);
         }
+
+        $tax = round($tax, 2);
+        $refund = round($withholding - $tax, 2);
+        $tax_diff = round($tax - $withholding, 2);
+
         $breakdown[] = sprintf(__('Rhode Island tax computed: %s', 'ustc2025'), number_format($tax, 2));
-        $tax_diff = $tax - $withholding;
-        $breakdown[] = sprintf(__('Tax - withholding = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+        $breakdown[] = sprintf(__('Povracaj = StateWithholding (%s) - StateTax (%s) = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format($refund, 2));
+
+        if ($refund > 0) {
+            $breakdown[] = sprintf(__('Imate povrat %s', 'ustc2025'), number_format($refund, 2));
+        } elseif ($refund < 0) {
+            $breakdown[] = sprintf(__('Morate da doplatite %s', 'ustc2025'), number_format(abs($refund), 2));
+        }
+
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 }
