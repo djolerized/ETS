@@ -910,7 +910,7 @@ JS;
         echo '</form>';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ustc_control_gross'])) {
-            $federal = $this->calculate_federal($gross, $fwh, $residency, $federal_settings);
+            $federal = $this->calculate_federal($gross, $fwh, $swh, $residency, $federal_settings);
             $state_result = $this->calculate_state($state, $gross, $swh, $residency, $this->get_state_settings_by_name($state, $state_settings), $federal);
             echo '<div class="ustc2025-breakdown">';
             echo '<h4>' . esc_html__('Federal breakdown', 'ustc2025') . '</h4>';
@@ -979,8 +979,8 @@ JS;
         echo '</div>';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ustc_calculate'])) {
-            $federal_resident = $this->calculate_federal($gross, $fwh, 'resident', $federal_settings);
-            $federal_nonresident = $this->calculate_federal($gross, $fwh, 'nonresident', $federal_settings);
+            $federal_resident = $this->calculate_federal($gross, $fwh, $swh, 'resident', $federal_settings);
+            $federal_nonresident = $this->calculate_federal($gross, $fwh, $swh, 'nonresident', $federal_settings);
             $selected_state_settings = $this->get_state_settings_by_name($state, $state_settings);
             $state_resident = $this->calculate_state($state, $gross, $swh, 'resident', $selected_state_settings, $federal_resident);
             $state_nonresident = $this->calculate_state($state, $gross, $swh, 'nonresident', $selected_state_settings, $federal_nonresident);
@@ -1033,7 +1033,7 @@ JS;
         return '<span class="' . esc_attr($class) . '">' . esc_html($message . ' ' . $amount . ' USD') . '</span>';
     }
 
-    private function calculate_federal($gross, $withholding, $residency, $settings)
+    private function calculate_federal($gross, $federal_withholding, $state_withholding, $residency, $settings)
     {
         $breakdown = [];
         $std_deduction = floatval($settings['std_deduction']);
@@ -1041,26 +1041,35 @@ JS;
             $agi = $gross - $std_deduction;
             $breakdown[] = sprintf(__('AGI = GrossIncome (%s) - StdDeduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($std_deduction, 2), number_format($agi, 2));
         } else {
-            $agi = $gross - $withholding;
-            $breakdown[] = sprintf(__('AGI = GrossIncome (%s) - FederalWithholding (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($withholding, 2), number_format($agi, 2));
+            $agi = $gross - $state_withholding;
+            $breakdown[] = sprintf(__('TaxableIncome = TotalIncome (%s) - StateWithholding (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($state_withholding, 2), number_format($agi, 2));
         }
         if ($agi < 0) {
             $agi = 0;
         }
-        $brackets = [
-            ['limit' => 11925, 'rate' => 0.10],
-            ['limit' => 48475, 'rate' => 0.12],
-            ['limit' => 103350, 'rate' => 0.22],
-            ['limit' => 197300, 'rate' => 0.24],
-            ['limit' => 250525, 'rate' => 0.32],
-            ['limit' => 626350, 'rate' => 0.35],
-            ['limit' => null, 'rate' => 0.37],
-        ];
+        if ($residency === 'resident') {
+            $brackets = [
+                ['limit' => 11925, 'rate' => 0.10],
+                ['limit' => 48475, 'rate' => 0.12],
+                ['limit' => 103350, 'rate' => 0.22],
+                ['limit' => 197300, 'rate' => 0.24],
+                ['limit' => 250525, 'rate' => 0.32],
+                ['limit' => 626350, 'rate' => 0.35],
+                ['limit' => null, 'rate' => 0.37],
+            ];
+        } else {
+            $brackets = [
+                ['limit' => 11925, 'rate' => 0.10],
+                ['limit' => 48475, 'rate' => 0.12],
+                ['limit' => 103350, 'rate' => 0.22],
+                ['limit' => 197300, 'rate' => 0.24],
+            ];
+        }
         $tax_data = $this->progressive_tax($agi, $brackets);
         $breakdown = array_merge($breakdown, $tax_data['breakdown']);
         $tax = $tax_data['tax'];
-        $tax_diff = $tax - $withholding;
-        $breakdown[] = sprintf(__('Tax - FederalWithholding = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+        $tax_diff = $tax - $federal_withholding;
+        $breakdown[] = sprintf(__('Tax - FederalWithholding = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($federal_withholding, 2), number_format($tax_diff, 2));
         return [
             'tax' => $tax,
             'tax_diff' => $tax_diff,
@@ -2053,9 +2062,11 @@ JS;
 
     private function rhode_island_tax($gross, $withholding, $residency, $settings, &$breakdown)
     {
-        $deduction = $residency === 'resident' ? floatval($settings['deduction_resident']) : floatval($settings['deduction_nonresident']);
-        $taxable = $gross - $deduction;
-        $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
+        $resident_deduction = 16000;
+        $nonresident_deduction = 5100;
+        $deduction = $residency === 'resident' ? $resident_deduction : $nonresident_deduction;
+        $taxable = max(0, $gross - $deduction);
+        $breakdown[] = sprintf(__('TaxableIncome = Total income (%s) - RI personal deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
         if ($taxable <= 79900) {
             $tax = 0.0375 * $taxable;
         } elseif ($taxable <= 181650) {
