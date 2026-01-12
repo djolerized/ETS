@@ -2062,9 +2062,11 @@ JS;
 
     private function rhode_island_tax($gross, $withholding, $residency, $settings, &$breakdown)
     {
-        $deduction = $residency === 'resident' ? floatval($settings['deduction_resident']) : floatval($settings['deduction_nonresident']);
-        $taxable = $gross - $deduction;
-        $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
+        $resident_deduction = 16000;
+        $nonresident_deduction = 5100;
+        $deduction = $residency === 'resident' ? $resident_deduction : $nonresident_deduction;
+        $taxable = max(0, $gross - $deduction);
+        $breakdown[] = sprintf(__('TaxableIncome = Total income (%s) - RI personal deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
         if ($taxable <= 79900) {
             $tax = 0.0375 * $taxable;
         } elseif ($taxable <= 181650) {
