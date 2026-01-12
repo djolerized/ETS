@@ -445,6 +445,9 @@ class USTaxCalculator2025
             'UT' => [
                 'state_deduction' => 0,
                 'personal_credit' => 0,
+                'ut_deduction' => 17652,
+                'ut_phaseout_percent' => 6,
+                'ut_phaseout_amount_percent' => 1.3,
                 'calculation_mode' => 'flat_rate',
                 'flat_rate' => 4.5,
                 'brackets' => [],
@@ -640,6 +643,18 @@ JS;
                 $clean[$code]['ar_tax_credits'] = isset($state_input['ar_tax_credits']) ? floatval($state_input['ar_tax_credits']) : floatval($defaults[$code]['ar_tax_credits']);
             }
 
+            if (isset($defaults[$code]['ut_deduction'])) {
+                $clean[$code]['ut_deduction'] = isset($state_input['ut_deduction']) ? floatval($state_input['ut_deduction']) : floatval($defaults[$code]['ut_deduction']);
+            }
+
+            if (isset($defaults[$code]['ut_phaseout_percent'])) {
+                $clean[$code]['ut_phaseout_percent'] = isset($state_input['ut_phaseout_percent']) ? floatval($state_input['ut_phaseout_percent']) : floatval($defaults[$code]['ut_phaseout_percent']);
+            }
+
+            if (isset($defaults[$code]['ut_phaseout_amount_percent'])) {
+                $clean[$code]['ut_phaseout_amount_percent'] = isset($state_input['ut_phaseout_amount_percent']) ? floatval($state_input['ut_phaseout_amount_percent']) : floatval($defaults[$code]['ut_phaseout_amount_percent']);
+            }
+
             if (isset($state_input['brackets']) && is_array($state_input['brackets'])) {
                 foreach ($state_input['brackets'] as $row) {
                     if ($row === null) {
@@ -769,6 +784,13 @@ JS;
                 } elseif ($code === 'AR') {
                     $ar_tax_credits = isset($state_settings['ar_tax_credits']) ? $state_settings['ar_tax_credits'] : '';
                     echo '<div class="ustc2025-col"><label>' . esc_html__('Arkansas tax credits (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][ar_tax_credits]" value="' . esc_attr($ar_tax_credits) . '" /></div>';
+                } elseif ($code === 'UT') {
+                    $ut_deduction = isset($state_settings['ut_deduction']) ? $state_settings['ut_deduction'] : '';
+                    $ut_phaseout_percent = isset($state_settings['ut_phaseout_percent']) ? $state_settings['ut_phaseout_percent'] : '';
+                    $ut_phaseout_amount_percent = isset($state_settings['ut_phaseout_amount_percent']) ? $state_settings['ut_phaseout_amount_percent'] : '';
+                    echo '<div class="ustc2025-col"><label>' . esc_html__('Utah deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][ut_deduction]" value="' . esc_attr($ut_deduction) . '" /></div>';
+                    echo '<div class="ustc2025-col"><label>' . esc_html__('Utah phaseout percent (%)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][ut_phaseout_percent]" value="' . esc_attr($ut_phaseout_percent) . '" /></div>';
+                    echo '<div class="ustc2025-col"><label>' . esc_html__('Utah phaseout amount percent (%)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][ut_phaseout_amount_percent]" value="' . esc_attr($ut_phaseout_amount_percent) . '" /></div>';
                 } elseif ($code === 'GE') {
                     $ge_deduction = isset($state_settings['ge_deduction']) ? $state_settings['ge_deduction'] : '';
                     $ge_credit = isset($state_settings['ge_credit']) ? $state_settings['ge_credit'] : '';
@@ -1197,6 +1219,9 @@ JS;
         if ($code === 'GE') {
             return $this->georgia_tax($gross, $withholding, $residency, $settings);
         }
+        if ($code === 'UT') {
+            return $this->utah_tax($gross, $withholding, $residency, $settings);
+        }
         if ($code === 'DC') {
             $breakdown[] = __('Full refund of state withholding applied.', 'ustc2025');
             return ['tax' => 0, 'tax_diff' => -$withholding, 'breakdown' => $breakdown];
@@ -1397,6 +1422,45 @@ JS;
         }
 
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+    }
+
+    private function utah_tax($gross, $withholding, $residency, $settings)
+    {
+        $breakdown = [];
+        $federal_settings = $this->get_federal_settings();
+        $federal_std = isset($federal_settings['std_deduction']) ? floatval($federal_settings['std_deduction']) : 0;
+
+        $ut_deduction = isset($settings['ut_deduction']) ? floatval($settings['ut_deduction']) : 0;
+        $phaseout_percent = isset($settings['ut_phaseout_percent']) ? floatval($settings['ut_phaseout_percent']) : 0;
+        $phaseout_amount_percent = isset($settings['ut_phaseout_amount_percent']) ? floatval($settings['ut_phaseout_amount_percent']) : 0;
+        $rate = isset($settings['flat_rate']) ? floatval($settings['flat_rate']) : 0;
+
+        $phase_out = $federal_std * ($phaseout_percent / 100);
+        $breakdown[] = sprintf(__('UT phase out = Federal std deduction (%s) * %s%% = %s', 'ustc2025'), number_format($federal_std, 2), $phaseout_percent, number_format($phase_out, 2));
+
+        if ($residency === 'resident') {
+            $phase_out_amount = ($gross - $ut_deduction) * ($phaseout_amount_percent / 100);
+            $breakdown[] = sprintf(__('UT phase out amount (resident) = (GrossIncome (%s) - UT deduction (%s)) * %s%% = %s', 'ustc2025'), number_format($gross, 2), number_format($ut_deduction, 2), $phaseout_amount_percent, number_format($phase_out_amount, 2));
+        } else {
+            $phase_out_amount = ($gross - $withholding) * ($phaseout_amount_percent / 100);
+            $breakdown[] = sprintf(__('UT phase out amount (non-resident) = (GrossIncome (%s) - StateWithholding (%s)) * %s%% = %s', 'ustc2025'), number_format($gross, 2), number_format($withholding, 2), $phaseout_amount_percent, number_format($phase_out_amount, 2));
+        }
+
+        $taxpayer_credit = $phase_out - $phase_out_amount;
+        $breakdown[] = sprintf(__('Utah taxpayer credit = %s - %s = %s', 'ustc2025'), number_format($phase_out, 2), number_format($phase_out_amount, 2), number_format($taxpayer_credit, 2));
+
+        $ut_tax = $gross * ($rate / 100);
+        $breakdown[] = sprintf(__('Utah tax = GrossIncome (%s) * %s%% = %s', 'ustc2025'), number_format($gross, 2), $rate, number_format($ut_tax, 2));
+
+        $final_tax = $ut_tax - $taxpayer_credit;
+        $breakdown[] = sprintf(__('UT final tax = %s - %s = %s', 'ustc2025'), number_format($ut_tax, 2), number_format($taxpayer_credit, 2), number_format($final_tax, 2));
+
+        $tax_diff = $final_tax - $withholding;
+        $result_label = $tax_diff < 0 ? __('State Tax Return', 'ustc2025') : __('State Tax Owed', 'ustc2025');
+        $breakdown[] = sprintf(__('Final tax - withholding = %s - %s = %s', 'ustc2025'), number_format($final_tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+        $breakdown[] = sprintf(__('%s %s', 'ustc2025'), $result_label, number_format($tax_diff, 2));
+
+        return ['tax' => $final_tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 
     private function hawaii_tax($gross, $withholding, $residency, $settings)
