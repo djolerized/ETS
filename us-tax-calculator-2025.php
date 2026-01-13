@@ -28,6 +28,7 @@ class USTaxCalculator2025
         ['code' => 'GE', 'name' => 'Georgia'],
         ['code' => 'HI', 'name' => 'Hawaii'],
         ['code' => 'IA', 'name' => 'Iowa'],
+        ['code' => 'ID', 'name' => 'Idaho'],
         ['code' => 'KY', 'name' => 'Kentucky'],
         ['code' => 'LA', 'name' => 'Louisiana'],
         ['code' => 'ME', 'name' => 'Maine'],
@@ -478,17 +479,19 @@ class USTaxCalculator2025
                 'brackets' => [],
             ],
             'WI' => [
-                'state_deduction' => 14260,
+                'state_deduction' => 0,
                 'personal_credit' => 0,
                 'calculation_mode' => 'progressive_brackets',
                 'flat_rate' => '',
+                'wisconsin_deduction' => 14260,
+                'non_resident_wisconsin_deduction' => 700,
                 'deduction_resident' => 14260,
                 'deduction_nonresident' => 700,
                 'brackets' => [
                     ['min_income' => 0, 'max_income' => 14680, 'base_tax' => 0, 'rate' => 3.5],
-                    ['min_income' => 14680, 'max_income' => 50480, 'base_tax' => 513.8, 'rate' => 4.4],
-                    ['min_income' => 50480, 'max_income' => 323290, 'base_tax' => 2089, 'rate' => 5.3],
-                    ['min_income' => 323290, 'max_income' => '', 'base_tax' => 16547.93, 'rate' => 7.65],
+                    ['min_income' => 14680, 'max_income' => 29370, 'base_tax' => 513.8, 'rate' => 4.4],
+                    ['min_income' => 29370, 'max_income' => 323290, 'base_tax' => 1160.16, 'rate' => 5.3],
+                    ['min_income' => 323290, 'max_income' => '', 'base_tax' => 16737.92, 'rate' => 7.65],
                 ],
             ],
             'WY' => [
@@ -669,6 +672,19 @@ JS;
                 $clean[$code]['rh_personal_deduction_nonres'] = isset($state_input['rh_personal_deduction_nonres']) ? floatval($state_input['rh_personal_deduction_nonres']) : floatval($defaults[$code]['rh_personal_deduction_nonres']);
             }
 
+            if (isset($defaults[$code]['wisconsin_deduction'])) {
+                $clean[$code]['wisconsin_deduction'] = isset($state_input['wisconsin_deduction']) ? floatval($state_input['wisconsin_deduction']) : floatval($defaults[$code]['wisconsin_deduction']);
+            }
+
+            if (isset($defaults[$code]['non_resident_wisconsin_deduction'])) {
+                $clean[$code]['non_resident_wisconsin_deduction'] = isset($state_input['non_resident_wisconsin_deduction']) ? floatval($state_input['non_resident_wisconsin_deduction']) : floatval($defaults[$code]['non_resident_wisconsin_deduction']);
+            }
+
+            // Force Wisconsin personal_credit to 0 to prevent double-deduction
+            if ($code === 'WI') {
+                $clean[$code]['personal_credit'] = 0;
+            }
+
             if (isset($state_input['brackets']) && is_array($state_input['brackets'])) {
                 foreach ($state_input['brackets'] as $row) {
                     if ($row === null) {
@@ -843,6 +859,15 @@ JS;
                     echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" />';
                     echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][deduction_resident]" value="' . esc_attr($rh_personal_deduction_res) . '" />';
                     echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][deduction_nonresident]" value="' . esc_attr($rh_personal_deduction_nonres) . '" />';
+                } elseif ($code === 'WI') {
+                    $wisconsin_deduction = isset($state_settings['wisconsin_deduction']) ? $state_settings['wisconsin_deduction'] : '';
+                    $non_resident_wisconsin_deduction = isset($state_settings['non_resident_wisconsin_deduction']) ? $state_settings['non_resident_wisconsin_deduction'] : '';
+                    echo '<div class="ustc2025-col"><label>' . esc_html__('Wisconsin resident deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][wisconsin_deduction]" value="' . esc_attr($wisconsin_deduction) . '" /></div>';
+                    echo '<div class="ustc2025-col"><label>' . esc_html__('Wisconsin non-resident deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][non_resident_wisconsin_deduction]" value="' . esc_attr($non_resident_wisconsin_deduction) . '" /></div>';
+                    echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" />';
+                    echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" />';
+                    echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][deduction_resident]" value="' . esc_attr($wisconsin_deduction) . '" />';
+                    echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][deduction_nonresident]" value="' . esc_attr($non_resident_wisconsin_deduction) . '" />';
                 } else {
                     echo '<div class="ustc2025-col"><label>' . esc_html__('State deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" /></div>';
                     echo '<div class="ustc2025-col"><label>' . esc_html__('Personal credit (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" /></div>';
@@ -1284,6 +1309,9 @@ JS;
         }
         if ($code === 'RI') {
             return $this->rhode_island_tax($gross, $withholding, $residency, $settings, $breakdown);
+        }
+        if ($code === 'WI') {
+            return $this->wisconsin_tax($gross, $withholding, $residency, $settings, $breakdown);
         }
 
         $personal_deduction = 0;
@@ -1993,30 +2021,20 @@ JS;
 
     private function wisconsin_tax($gross, $withholding, $residency, $settings, &$breakdown)
     {
-        // Test (resident vs nonresident should differ):
-        // total_income=20000, state_withholding=500
-        // resident: deduction=14260, taxable=5740
-        // nonresident: deduction=700, taxable=19300
-        $personal_deduction = 0;
-        $personal_credit = isset($settings['personal_credit']) ? floatval($settings['personal_credit']) : 0;
-        $resident_deduction = isset($settings['deduction_resident']) ? floatval($settings['deduction_resident']) : 0;
-        $nonresident_deduction = isset($settings['deduction_nonresident']) ? floatval($settings['deduction_nonresident']) : 0;
-        $state_deduction = isset($settings['state_deduction']) ? floatval($settings['state_deduction']) : 0;
+        $wisconsin_deduction = isset($settings['wisconsin_deduction']) ? floatval($settings['wisconsin_deduction']) : 14260;
+        $non_resident_wisconsin_deduction = isset($settings['non_resident_wisconsin_deduction']) ? floatval($settings['non_resident_wisconsin_deduction']) : 700;
 
-        if ($residency === 'resident' && $resident_deduction > 0) {
-            $personal_deduction = $resident_deduction;
-        } elseif ($residency === 'nonresident' && $nonresident_deduction > 0) {
-            $personal_deduction = $nonresident_deduction;
-        } elseif ($state_deduction > 0) {
-            $personal_deduction = $state_deduction;
+        if ($residency === 'resident') {
+            $personal_deduction = $wisconsin_deduction;
+            $breakdown[] = sprintf(__('Wisconsin resident: Taxable income = Total income (%s) - Wisconsin deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($personal_deduction, 2), number_format($gross - $personal_deduction, 2));
+        } else {
+            $personal_deduction = $non_resident_wisconsin_deduction;
+            $breakdown[] = sprintf(__('Wisconsin non-resident: Taxable income = Total income (%s) - Non-resident deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($personal_deduction, 2), number_format($gross - $personal_deduction, 2));
         }
 
         $taxable = max(0, $gross - $personal_deduction);
-        if ($personal_deduction > 0) {
-            $breakdown[] = sprintf(__('Taxable income = Total income (%s) - Deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($personal_deduction, 2), number_format($taxable, 2));
-        } else {
-            $breakdown[] = sprintf(__('Taxable income = Total income (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($taxable, 2));
-        }
+
+        // Apply Wisconsin tax brackets
         $b1 = 14680;
         $b2 = 29370;
         $b3 = 323290;
@@ -2024,38 +2042,54 @@ JS;
         $r2 = 0.044;
         $r3 = 0.053;
         $r4 = 0.0765;
+
         if ($taxable <= $b1) {
             $tax = $taxable * $r1;
+            $breakdown[] = sprintf(__('Tax bracket: $0 to $14,680 at 3.50%% = %s * 3.50%% = %s', 'ustc2025'), number_format($taxable, 2), number_format($tax, 2));
         } elseif ($taxable <= $b2) {
             $tax = ($b1 * $r1) + (($taxable - $b1) * $r2);
+            $breakdown[] = sprintf(__('Tax bracket: $0 to $14,680 at 3.50%% = %s', 'ustc2025'), number_format($b1 * $r1, 2));
+            $breakdown[] = sprintf(__('Tax bracket: $14,680 to $29,370 at 4.40%% = (%s - %s) * 4.40%% = %s', 'ustc2025'), number_format($taxable, 2), number_format($b1, 2), number_format(($taxable - $b1) * $r2, 2));
+            $breakdown[] = sprintf(__('Total Wisconsin state tax = %s', 'ustc2025'), number_format($tax, 2));
         } elseif ($taxable <= $b3) {
             $tax = ($b1 * $r1) + (($b2 - $b1) * $r2) + (($taxable - $b2) * $r3);
+            $breakdown[] = sprintf(__('Tax bracket: $0 to $14,680 at 3.50%% = %s', 'ustc2025'), number_format($b1 * $r1, 2));
+            $breakdown[] = sprintf(__('Tax bracket: $14,680 to $29,370 at 4.40%% = %s', 'ustc2025'), number_format(($b2 - $b1) * $r2, 2));
+            $breakdown[] = sprintf(__('Tax bracket: $29,370 to $323,290 at 5.30%% = (%s - %s) * 5.30%% = %s', 'ustc2025'), number_format($taxable, 2), number_format($b2, 2), number_format(($taxable - $b2) * $r3, 2));
+            $breakdown[] = sprintf(__('Total Wisconsin state tax = %s', 'ustc2025'), number_format($tax, 2));
         } else {
             $tax = ($b1 * $r1) + (($b2 - $b1) * $r2) + (($b3 - $b2) * $r3) + (($taxable - $b3) * $r4);
+            $breakdown[] = sprintf(__('Tax bracket: $0 to $14,680 at 3.50%% = %s', 'ustc2025'), number_format($b1 * $r1, 2));
+            $breakdown[] = sprintf(__('Tax bracket: $14,680 to $29,370 at 4.40%% = %s', 'ustc2025'), number_format(($b2 - $b1) * $r2, 2));
+            $breakdown[] = sprintf(__('Tax bracket: $29,370 to $323,290 at 5.30%% = %s', 'ustc2025'), number_format(($b3 - $b2) * $r3, 2));
+            $breakdown[] = sprintf(__('Tax bracket: $323,290 or more at 7.65%% = (%s - %s) * 7.65%% = %s', 'ustc2025'), number_format($taxable, 2), number_format($b3, 2), number_format(($taxable - $b3) * $r4, 2));
+            $breakdown[] = sprintf(__('Total Wisconsin state tax = %s', 'ustc2025'), number_format($tax, 2));
         }
+
         $tax = round($tax, 2);
-        $breakdown[] = sprintf(__('Wisconsin tax computed: %s', 'ustc2025'), number_format($tax, 2));
-        $tax_diff = $tax - $withholding - $personal_credit;
-        if ($personal_credit > 0) {
-            $breakdown[] = sprintf(__('Tax - withholding - credit = %s - %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($personal_credit, 2), number_format($tax_diff, 2));
+        $tax_diff = $withholding - $tax;
+
+        if ($tax_diff > 0) {
+            $breakdown[] = sprintf(__('Tax refund = State withholding (%s) - State tax (%s) = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format($tax_diff, 2));
         } else {
-            $breakdown[] = sprintf(__('Tax - withholding = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+            $breakdown[] = sprintf(__('Tax owed = State withholding (%s) - State tax (%s) = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format($tax_diff, 2));
         }
+
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 
     private function idaho_tax($gross, $withholding, $residency, $settings, &$breakdown)
     {
-        $flat_rate = isset($settings['flat_rate']) ? floatval($settings['flat_rate']) : 0;
-        $deduction = isset($settings['id_deduction']) ? floatval($settings['id_deduction']) : 0;
-        $pbf_tax = isset($settings['permanent_building_fund_tax']) ? floatval($settings['permanent_building_fund_tax']) : 0;
+        $flat_rate = isset($settings['flat_rate']) ? floatval($settings['flat_rate']) : 5.3;
+        $deduction = isset($settings['id_deduction']) ? floatval($settings['id_deduction']) : 14600;
+        $pbf_tax = isset($settings['permanent_building_fund_tax']) ? floatval($settings['permanent_building_fund_tax']) : 10;
 
         if ($residency === 'resident') {
             $taxable = max(0, $gross - $deduction);
-            $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - ID deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
+            $breakdown[] = sprintf(__('Idaho resident: Taxable income = Total income (%s) - Idaho deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
         } else {
             $taxable = $gross;
-            $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s)', 'ustc2025'), number_format($gross, 2));
+            $breakdown[] = sprintf(__('Idaho non-resident: Taxable income = Total income (%s)', 'ustc2025'), number_format($gross, 2));
         }
 
         $rate_decimal = $flat_rate / 100;
@@ -2063,10 +2097,15 @@ JS;
         $breakdown[] = sprintf(__('Idaho tax = %s * %s%% = %s', 'ustc2025'), number_format($taxable, 2), $flat_rate, number_format($id_tax, 2));
 
         $final_tax = $id_tax + $pbf_tax;
-        $breakdown[] = sprintf(__('Final Idaho tax = Idaho tax (%s) + Permanent building fund tax (%s) = %s', 'ustc2025'), number_format($id_tax, 2), number_format($pbf_tax, 2), number_format($final_tax, 2));
+        $breakdown[] = sprintf(__('Idaho final tax = Idaho tax (%s) + Permanent building fund tax (%s) = %s', 'ustc2025'), number_format($id_tax, 2), number_format($pbf_tax, 2), number_format($final_tax, 2));
 
-        $tax_diff = $final_tax - $withholding;
-        $breakdown[] = sprintf(__('Tax - withholding = %s - %s = %s', 'ustc2025'), number_format($final_tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+        $tax_diff = $withholding - $final_tax;
+
+        if ($tax_diff > 0) {
+            $breakdown[] = sprintf(__('State Tax Return = State withholding (%s) - Idaho final tax (%s) = %s', 'ustc2025'), number_format($withholding, 2), number_format($final_tax, 2), number_format($tax_diff, 2));
+        } else {
+            $breakdown[] = sprintf(__('State Tax Owed = State withholding (%s) - Idaho final tax (%s) = %s', 'ustc2025'), number_format($withholding, 2), number_format($final_tax, 2), number_format($tax_diff, 2));
+        }
 
         return ['tax' => $final_tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
