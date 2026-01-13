@@ -679,6 +679,11 @@ JS;
                 $clean[$code]['non_resident_wisconsin_deduction'] = isset($state_input['non_resident_wisconsin_deduction']) ? floatval($state_input['non_resident_wisconsin_deduction']) : floatval($defaults[$code]['non_resident_wisconsin_deduction']);
             }
 
+            // Force Wisconsin personal_credit to 0 to prevent double-deduction
+            if ($code === 'WI') {
+                $clean[$code]['personal_credit'] = 0;
+            }
+
             if (isset($state_input['brackets']) && is_array($state_input['brackets'])) {
                 foreach ($state_input['brackets'] as $row) {
                     if ($row === null) {
