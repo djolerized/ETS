@@ -28,6 +28,7 @@ class USTaxCalculator2025
         ['code' => 'GE', 'name' => 'Georgia'],
         ['code' => 'HI', 'name' => 'Hawaii'],
         ['code' => 'IA', 'name' => 'Iowa'],
+        ['code' => 'ID', 'name' => 'Idaho'],
         ['code' => 'KY', 'name' => 'Kentucky'],
         ['code' => 'LA', 'name' => 'Louisiana'],
         ['code' => 'ME', 'name' => 'Maine'],
@@ -2079,16 +2080,16 @@ JS;
 
     private function idaho_tax($gross, $withholding, $residency, $settings, &$breakdown)
     {
-        $flat_rate = isset($settings['flat_rate']) ? floatval($settings['flat_rate']) : 0;
-        $deduction = isset($settings['id_deduction']) ? floatval($settings['id_deduction']) : 0;
-        $pbf_tax = isset($settings['permanent_building_fund_tax']) ? floatval($settings['permanent_building_fund_tax']) : 0;
+        $flat_rate = isset($settings['flat_rate']) ? floatval($settings['flat_rate']) : 5.3;
+        $deduction = isset($settings['id_deduction']) ? floatval($settings['id_deduction']) : 14600;
+        $pbf_tax = isset($settings['permanent_building_fund_tax']) ? floatval($settings['permanent_building_fund_tax']) : 10;
 
         if ($residency === 'resident') {
             $taxable = max(0, $gross - $deduction);
-            $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - ID deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
+            $breakdown[] = sprintf(__('Idaho resident: Taxable income = Total income (%s) - Idaho deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
         } else {
             $taxable = $gross;
-            $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s)', 'ustc2025'), number_format($gross, 2));
+            $breakdown[] = sprintf(__('Idaho non-resident: Taxable income = Total income (%s)', 'ustc2025'), number_format($gross, 2));
         }
 
         $rate_decimal = $flat_rate / 100;
@@ -2096,10 +2097,15 @@ JS;
         $breakdown[] = sprintf(__('Idaho tax = %s * %s%% = %s', 'ustc2025'), number_format($taxable, 2), $flat_rate, number_format($id_tax, 2));
 
         $final_tax = $id_tax + $pbf_tax;
-        $breakdown[] = sprintf(__('Final Idaho tax = Idaho tax (%s) + Permanent building fund tax (%s) = %s', 'ustc2025'), number_format($id_tax, 2), number_format($pbf_tax, 2), number_format($final_tax, 2));
+        $breakdown[] = sprintf(__('Idaho final tax = Idaho tax (%s) + Permanent building fund tax (%s) = %s', 'ustc2025'), number_format($id_tax, 2), number_format($pbf_tax, 2), number_format($final_tax, 2));
 
-        $tax_diff = $final_tax - $withholding;
-        $breakdown[] = sprintf(__('Tax - withholding = %s - %s = %s', 'ustc2025'), number_format($final_tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+        $tax_diff = $withholding - $final_tax;
+
+        if ($tax_diff > 0) {
+            $breakdown[] = sprintf(__('State Tax Return = State withholding (%s) - Idaho final tax (%s) = %s', 'ustc2025'), number_format($withholding, 2), number_format($final_tax, 2), number_format($tax_diff, 2));
+        } else {
+            $breakdown[] = sprintf(__('State Tax Owed = State withholding (%s) - Idaho final tax (%s) = %s', 'ustc2025'), number_format($withholding, 2), number_format($final_tax, 2), number_format($tax_diff, 2));
+        }
 
         return ['tax' => $final_tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
