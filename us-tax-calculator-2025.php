@@ -1313,6 +1313,9 @@ JS;
         if ($code === 'NY') {
             return $this->new_york_tax($gross, $withholding, $settings, $breakdown);
         }
+        if ($code === 'MD') {
+            return $this->maryland_tax_calculation($gross, $withholding, $residency, $settings);
+        }
 
         $personal_deduction = 0;
         $personal_credit = isset($settings['personal_credit']) ? floatval($settings['personal_credit']) : 0;
@@ -1768,6 +1771,26 @@ JS;
         return $tax;
     }
 
+    private function maryland_tax_calculation($gross, $withholding, $residency, $settings)
+    {
+        $breakdown = [];
+        $state_deduction = isset($settings['state_deduction']) ? floatval($settings['state_deduction']) : 6550;
+
+        $taxable = $gross - $state_deduction;
+        if ($taxable < 0) {
+            $taxable = 0;
+        }
+
+        $breakdown[] = sprintf(__('Taxable income = Total income (%s) - Maryland deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($state_deduction, 2), number_format($taxable, 2));
+
+        $tax = $this->maryland_tax($taxable, $breakdown);
+
+        $tax_diff = $withholding - $tax;
+        $breakdown[] = sprintf(__('Tax difference = State withholding (%s) - State tax (%s) = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format($tax_diff, 2));
+
+        return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+    }
+
     private function maryland_tax($taxable, &$breakdown)
     {
         if ($taxable <= 0) {
@@ -1781,18 +1804,8 @@ JS;
             $tax = 50 + 0.04 * ($taxable - 2000);
         } elseif ($taxable <= 100000) {
             $tax = 90 + 0.0475 * ($taxable - 3000);
-        } elseif ($taxable <= 125000) {
-            $tax = 4568.25 + 0.05 * ($taxable - 100000);
-        } elseif ($taxable <= 150000) {
-            $tax = 5818.25 + 0.0525 * ($taxable - 125000);
-        } elseif ($taxable <= 250000) {
-            $tax = 7156.50 + 0.055 * ($taxable - 150000);
-        } elseif ($taxable <= 500000) {
-            $tax = 12606.50 + 0.0575 * ($taxable - 250000);
-        } elseif ($taxable <= 1000000) {
-            $tax = 26681.25 + 0.0625 * ($taxable - 500000);
         } else {
-            $tax = 57806.25 + 0.065 * ($taxable - 1000000);
+            $tax = 4697.75 + 0.05 * ($taxable - 100000);
         }
         $breakdown[] = sprintf(__('Maryland tax computed: %s', 'ustc2025'), number_format($tax, 2));
         return $tax;
