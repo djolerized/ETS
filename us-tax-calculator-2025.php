@@ -346,10 +346,7 @@ class USTaxCalculator2025
                     ['min_income' => 11700, 'max_income' => 13900, 'base_tax' => 484, 'rate' => 5.25],
                     ['min_income' => 13900, 'max_income' => 80650, 'base_tax' => 600, 'rate' => 5.5],
                     ['min_income' => 80650, 'max_income' => 215400, 'base_tax' => 4271, 'rate' => 6],
-                    ['min_income' => 215400, 'max_income' => 1077550, 'base_tax' => 12356, 'rate' => 6.85],
-                    ['min_income' => 1077550, 'max_income' => 5000000, 'base_tax' => 71413, 'rate' => 9.65],
-                    ['min_income' => 5000000, 'max_income' => 25000000, 'base_tax' => 449929, 'rate' => 10.3],
-                    ['min_income' => 25000000, 'max_income' => '', 'base_tax' => 2509929, 'rate' => 10.9],
+                    ['min_income' => 215400, 'max_income' => '', 'base_tax' => 12356, 'rate' => 6],
                 ],
             ],
             'NC' => [
@@ -1313,6 +1310,9 @@ JS;
         if ($code === 'WI') {
             return $this->wisconsin_tax($gross, $withholding, $residency, $settings, $breakdown);
         }
+        if ($code === 'NY') {
+            return $this->new_york_tax($gross, $withholding, $settings, $breakdown);
+        }
 
         $personal_deduction = 0;
         $personal_credit = isset($settings['personal_credit']) ? floatval($settings['personal_credit']) : 0;
@@ -1834,29 +1834,66 @@ JS;
         return $state_tax;
     }
 
-    private function new_york_tax($taxable, &$breakdown)
+    private function new_york_tax($gross, $withholding, $settings, &$breakdown)
     {
+        // New York state deduction
+        $ny_deduction = isset($settings['state_deduction']) ? floatval($settings['state_deduction']) : 0;
+
+        // Calculate taxable income
+        $taxable = max(0, $gross - $ny_deduction);
+
+        if ($ny_deduction > 0) {
+            $breakdown[] = sprintf(__('Taxable income = Total income (%s) - NY Deduction (%s) = %s', 'ustc2025'),
+                number_format($gross, 2), number_format($ny_deduction, 2), number_format($taxable, 2));
+        } else {
+            $breakdown[] = sprintf(__('Taxable income = Total income (%s) = %s', 'ustc2025'),
+                number_format($gross, 2), number_format($taxable, 2));
+        }
+
+        // Progressive tax brackets for New York
+        // $0 to $8,500 -> 4%
+        // $8,501 to $11,700 -> 4.5%
+        // $11,701 to $13,900 -> 5.25%
+        // $13,901 to $80,650 -> 5.50%
+        // $80,651 to $215,400 -> 6.00%
+        // Above $215,400 -> 6.00%
+
+        $tax = 0;
+
         if ($taxable <= 8500) {
             $tax = 0.04 * $taxable;
+            $breakdown[] = sprintf(__('Tax = %s * 4%% = %s', 'ustc2025'),
+                number_format($taxable, 2), number_format($tax, 2));
         } elseif ($taxable <= 11700) {
             $tax = 340 + 0.045 * ($taxable - 8500);
+            $breakdown[] = sprintf(__('Tax = $340 + (%s - $8,500) * 4.5%% = %s', 'ustc2025'),
+                number_format($taxable, 2), number_format($tax, 2));
         } elseif ($taxable <= 13900) {
             $tax = 484 + 0.0525 * ($taxable - 11700);
+            $breakdown[] = sprintf(__('Tax = $484 + (%s - $11,700) * 5.25%% = %s', 'ustc2025'),
+                number_format($taxable, 2), number_format($tax, 2));
         } elseif ($taxable <= 80650) {
             $tax = 600 + 0.055 * ($taxable - 13900);
+            $breakdown[] = sprintf(__('Tax = $600 + (%s - $13,900) * 5.5%% = %s', 'ustc2025'),
+                number_format($taxable, 2), number_format($tax, 2));
         } elseif ($taxable <= 215400) {
             $tax = 4271 + 0.06 * ($taxable - 80650);
-        } elseif ($taxable <= 1077550) {
-            $tax = 12356 + 0.0685 * ($taxable - 215400);
-        } elseif ($taxable <= 5000000) {
-            $tax = 71413 + 0.0965 * ($taxable - 1077550);
-        } elseif ($taxable <= 25000000) {
-            $tax = 449929 + 0.103 * ($taxable - 5000000);
+            $breakdown[] = sprintf(__('Tax = $4,271 + (%s - $80,650) * 6%% = %s', 'ustc2025'),
+                number_format($taxable, 2), number_format($tax, 2));
         } else {
-            $tax = 2509929 + 0.109 * ($taxable - 25000000);
+            // Above $215,400 continues at 6%
+            $tax = 12356 + 0.06 * ($taxable - 215400);
+            $breakdown[] = sprintf(__('Tax = $12,356 + (%s - $215,400) * 6%% = %s', 'ustc2025'),
+                number_format($taxable, 2), number_format($tax, 2));
         }
-        $breakdown[] = sprintf(__('New York tax computed: %s', 'ustc2025'), number_format($tax, 2));
-        return $tax;
+
+        // Calculate tax difference: tax - withholding
+        $tax_diff = $tax - $withholding;
+
+        $breakdown[] = sprintf(__('State tax difference = Tax (%s) - Withholding (%s) = %s', 'ustc2025'),
+            number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+
+        return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 
     private function delaware_tax($taxable, &$breakdown)
