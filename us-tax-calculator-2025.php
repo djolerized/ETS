@@ -113,20 +113,18 @@ class USTaxCalculator2025
                 'brackets' => [],
             ],
             'CA' => [
-                'state_deduction' => 3250,
+                'state_deduction' => 5706,
                 'personal_credit' => 153,
                 'calculation_mode' => 'progressive_brackets',
                 'flat_rate' => '',
                 'brackets' => [
-                    ['min_income' => 0, 'max_income' => 11079, 'base_tax' => 0, 'rate' => 1],
-                    ['min_income' => 11079, 'max_income' => 26264, 'base_tax' => 110.79, 'rate' => 2],
-                    ['min_income' => 26264, 'max_income' => 41452, 'base_tax' => 414.49, 'rate' => 4],
-                    ['min_income' => 41452, 'max_income' => 57542, 'base_tax' => 1022.01, 'rate' => 6],
-                    ['min_income' => 57542, 'max_income' => 72724, 'base_tax' => 1987.41, 'rate' => 8],
-                    ['min_income' => 72724, 'max_income' => 371479, 'base_tax' => 3201.97, 'rate' => 9.3],
-                    ['min_income' => 371479, 'max_income' => 445771, 'base_tax' => 30986.19, 'rate' => 10.3],
-                    ['min_income' => 445771, 'max_income' => 742953, 'base_tax' => 38638.27, 'rate' => 11.3],
-                    ['min_income' => 742953, 'max_income' => '', 'base_tax' => 72219.84, 'rate' => 12.3],
+                    ['min_income' => 0, 'max_income' => 10756, 'base_tax' => 0, 'rate' => 1],
+                    ['min_income' => 10756, 'max_income' => 25499, 'base_tax' => 107.56, 'rate' => 2],
+                    ['min_income' => 25499, 'max_income' => 40245, 'base_tax' => 402.42, 'rate' => 4],
+                    ['min_income' => 40245, 'max_income' => 55866, 'base_tax' => 992.26, 'rate' => 6],
+                    ['min_income' => 55866, 'max_income' => 70606, 'base_tax' => 1929.52, 'rate' => 8],
+                    ['min_income' => 70606, 'max_income' => 360659, 'base_tax' => 3108.72, 'rate' => 9.3],
+                    ['min_income' => 360659, 'max_income' => '', 'base_tax' => 30077.65, 'rate' => 9.3],
                 ],
             ],
             'CO' => [
@@ -1251,6 +1249,9 @@ JS;
         if ($code === 'AR') {
             return $this->arkansas_tax($gross, $withholding, $settings, $residency);
         }
+        if ($code === 'CA') {
+            return $this->california_tax($gross, $withholding, $settings, $breakdown);
+        }
         if ($code === 'CT') {
             return $this->connecticut_tax($gross, $withholding, $settings, $residency);
         }
@@ -1993,29 +1994,42 @@ JS;
         return ['tax' => $tax_after_credit, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 
-    private function california_tax($taxable, &$breakdown)
+    private function california_tax($gross, $withholding, $settings, &$breakdown)
     {
-        if ($taxable <= 11079) {
-            $tax = 0.01 * $taxable;
-        } elseif ($taxable <= 26264) {
-            $tax = 110.79 + 0.02 * ($taxable - 11079);
-        } elseif ($taxable <= 41452) {
-            $tax = 414.49 + 0.04 * ($taxable - 26264);
-        } elseif ($taxable <= 57542) {
-            $tax = 1022.01 + 0.06 * ($taxable - 41452);
-        } elseif ($taxable <= 72724) {
-            $tax = 1987.41 + 0.08 * ($taxable - 57542);
-        } elseif ($taxable <= 371479) {
-            $tax = 3201.97 + 0.093 * ($taxable - 72724);
-        } elseif ($taxable <= 445771) {
-            $tax = 30986.19 + 0.103 * ($taxable - 371479);
-        } elseif ($taxable <= 742953) {
-            $tax = 38638.27 + 0.113 * ($taxable - 445771);
-        } else {
-            $tax = 72219.84 + 0.123 * ($taxable - 742953);
+        // Get California deduction and personal tax credit
+        $california_deduction = isset($settings['state_deduction']) ? floatval($settings['state_deduction']) : 5706;
+        $personal_tax_credit = isset($settings['personal_credit']) ? floatval($settings['personal_credit']) : 153;
+
+        // Calculate taxable income
+        $taxable_income = $gross - $california_deduction;
+        if ($taxable_income < 0) {
+            $taxable_income = 0;
         }
-        $breakdown[] = sprintf(__('California tax computed: %s', 'ustc2025'), number_format($tax, 2));
-        return $tax;
+        $breakdown[] = sprintf(__('Taxable income = Total income (%s) - California deduction (%s) = %s', 'ustc2025'),
+            number_format($gross, 2), number_format($california_deduction, 2), number_format($taxable_income, 2));
+
+        // Apply tax brackets
+        $brackets = isset($settings['brackets']) ? $settings['brackets'] : [];
+        $state_tax = $this->apply_brackets($taxable_income, $brackets, $breakdown);
+
+        // Calculate povracaj_za_korisnika_state = state_tax - personal_tax_credit
+        $povracaj_za_korisnika_state = $state_tax - $personal_tax_credit;
+        $breakdown[] = sprintf(__('Tax after personal credit = State tax (%s) - Personal tax credit (%s) = %s', 'ustc2025'),
+            number_format($state_tax, 2), number_format($personal_tax_credit, 2), number_format($povracaj_za_korisnika_state, 2));
+
+        // If povracaj_za_korisnika_state <= 0, full refund of state withholding
+        if ($povracaj_za_korisnika_state <= 0) {
+            $breakdown[] = __('Tax after credit is at or below zero; full refund of state withholding.', 'ustc2025');
+            return ['tax' => 0, 'tax_diff' => -$withholding, 'breakdown' => $breakdown];
+        }
+
+        // Calculate total_tax_owned = povracaj_za_korisnika_state - state_withholding
+        $total_tax_owned = $povracaj_za_korisnika_state - $withholding;
+        $breakdown[] = sprintf(__('Total tax difference = Tax after credit (%s) - State withholding (%s) = %s', 'ustc2025'),
+            number_format($povracaj_za_korisnika_state, 2), number_format($withholding, 2), number_format($total_tax_owned, 2));
+
+        // Return the result
+        return ['tax' => $povracaj_za_korisnika_state, 'tax_diff' => $total_tax_owned, 'breakdown' => $breakdown];
     }
 
     private function missouri_tax($gross, $withholding, $residency, $settings, $federal_result, &$breakdown)
