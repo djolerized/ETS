@@ -346,6 +346,12 @@ class USTaxCalculator2025
                     ['min_income' => 80650, 'max_income' => 215400, 'base_tax' => 4271, 'rate' => 6],
                     ['min_income' => 215400, 'max_income' => '', 'base_tax' => 12356, 'rate' => 6],
                 ],
+                'personal_credit_brackets' => [
+                    ['min_income' => 0, 'max_income' => 10000, 'credit' => 65],
+                    ['min_income' => 10001, 'max_income' => 20000, 'credit' => 50],
+                    ['min_income' => 20001, 'max_income' => 28000, 'credit' => 30],
+                    ['min_income' => 28001, 'max_income' => '', 'credit' => 0],
+                ],
             ],
             'NC' => [
                 'state_deduction' => 12750,
@@ -611,6 +617,10 @@ JS;
                 $clean[$code]['income_range_brackets'] = [];
             }
 
+            if (isset($defaults[$code]['personal_credit_brackets'])) {
+                $clean[$code]['personal_credit_brackets'] = [];
+            }
+
             if (isset($defaults[$code]['deduction_resident'])) {
                 $clean[$code]['deduction_resident'] = isset($state_input['deduction_resident']) ? floatval($state_input['deduction_resident']) : floatval($defaults[$code]['deduction_resident']);
             }
@@ -717,6 +727,26 @@ JS;
                     }
                 } else {
                     $clean[$code]['income_range_brackets'] = $defaults[$code]['income_range_brackets'];
+                }
+            }
+
+            if (isset($defaults[$code]['personal_credit_brackets'])) {
+                if (isset($state_input['personal_credit_brackets']) && is_array($state_input['personal_credit_brackets'])) {
+                    foreach ($state_input['personal_credit_brackets'] as $row) {
+                        if ($row === null) {
+                            continue;
+                        }
+                        $min = isset($row['min_income']) ? floatval($row['min_income']) : 0;
+                        $max = isset($row['max_income']) && $row['max_income'] !== '' ? floatval($row['max_income']) : '';
+                        $credit = isset($row['credit']) ? floatval($row['credit']) : 0;
+                        $clean[$code]['personal_credit_brackets'][] = [
+                            'min_income' => $min,
+                            'max_income' => $max,
+                            'credit' => $credit,
+                        ];
+                    }
+                } else {
+                    $clean[$code]['personal_credit_brackets'] = $defaults[$code]['personal_credit_brackets'];
                 }
             }
         }
@@ -863,6 +893,10 @@ JS;
                     echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" />';
                     echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][deduction_resident]" value="' . esc_attr($wisconsin_deduction) . '" />';
                     echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][deduction_nonresident]" value="' . esc_attr($non_resident_wisconsin_deduction) . '" />';
+                } elseif ($code === 'NY') {
+                    $personal_credit_brackets = isset($state_settings['personal_credit_brackets']) ? $state_settings['personal_credit_brackets'] : [];
+                    echo '<div class="ustc2025-col"><label>' . esc_html__('New York deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" /></div>';
+                    echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" />';
                 } else {
                     echo '<div class="ustc2025-col"><label>' . esc_html__('State deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" /></div>';
                     echo '<div class="ustc2025-col"><label>' . esc_html__('Personal credit (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" /></div>';
@@ -907,6 +941,23 @@ JS;
                     echo '</tbody>';
                     echo '</table>';
                     echo '<p><button type="button" class="button ustc-add-income-range" data-state="' . esc_attr($code) . '">' . esc_html__('Add income range', 'ustc2025') . '</button></p>';
+                    echo '</div>';
+                }
+                if ($code === 'NY') {
+                    $personal_credit_brackets = !empty($personal_credit_brackets) ? $personal_credit_brackets : (isset($state_settings['personal_credit_brackets']) ? $state_settings['personal_credit_brackets'] : []);
+                    echo '<div class="ustc2025-brackets ustc2025-personal-credit-brackets" data-state="' . esc_attr($code) . '">';
+                    echo '<h4>' . esc_html__('Personal credit brackets (based on total income)', 'ustc2025') . '</h4>';
+                    echo '<table class="widefat fixed" cellspacing="0">';
+                    echo '<thead><tr><th>' . esc_html__('Min income', 'ustc2025') . '</th><th>' . esc_html__('Max income', 'ustc2025') . '</th><th>' . esc_html__('Personal credit (USD)', 'ustc2025') . '</th><th>' . esc_html__('Actions', 'ustc2025') . '</th></tr></thead>';
+                    echo '<tbody>';
+                    $idx = 0;
+                    foreach ($personal_credit_brackets as $row) {
+                        echo $this->render_personal_credit_row($code, $idx, $row);
+                        $idx++;
+                    }
+                    echo '</tbody>';
+                    echo '</table>';
+                    echo '<p><button type="button" class="button ustc-add-personal-credit" data-state="' . esc_attr($code) . '">' . esc_html__('Add personal credit bracket', 'ustc2025') . '</button></p>';
                     echo '</div>';
                 }
                 echo '</div>';
@@ -973,6 +1024,22 @@ JS;
                             const row = e.target.closest('tr');
                             if (row) row.remove();
                         }
+                        if (e.target.classList.contains('ustc-add-personal-credit')) {
+                            const state = e.target.dataset.state;
+                            const table = document.querySelector('.ustc2025-personal-credit-brackets[data-state="' + state + '"] tbody');
+                            if (!table) return;
+                            const idx = table.querySelectorAll('tr').length;
+                            const row = document.createElement('tr');
+                            row.innerHTML = '<td><input type="number" step="0.01" name="<?php echo esc_js($this->option_state); ?>[' + state + '][personal_credit_brackets][' + idx + '][min_income]" /></td>' +
+                                '<td><input type="number" step="0.01" name="<?php echo esc_js($this->option_state); ?>[' + state + '][personal_credit_brackets][' + idx + '][max_income]" /></td>' +
+                                '<td><input type="number" step="0.01" name="<?php echo esc_js($this->option_state); ?>[' + state + '][personal_credit_brackets][' + idx + '][credit]" /></td>' +
+                                '<td><button type="button" class="button link-delete ustc-remove-personal-credit"><?php echo esc_js(__('Remove', 'ustc2025')); ?></button></td>';
+                            table.appendChild(row);
+                        }
+                        if (e.target.classList.contains('ustc-remove-personal-credit')) {
+                            const row = e.target.closest('tr');
+                            if (row) row.remove();
+                        }
                     });
                 });
             </script>
@@ -1011,6 +1078,20 @@ JS;
         $html .= '<td><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($state_code) . '][income_range_brackets][' . esc_attr($index) . '][max_income]" value="' . esc_attr($max) . '" /></td>';
         $html .= '<td><input type="number" step="0.0001" name="' . esc_attr($this->option_state) . '[' . esc_attr($state_code) . '][income_range_brackets][' . esc_attr($index) . '][rate]" value="' . esc_attr($rate) . '" /></td>';
         $html .= '<td><button type="button" class="button link-delete ustc-remove-income-range">' . esc_html__('Remove', 'ustc2025') . '</button></td>';
+        $html .= '</tr>';
+        return $html;
+    }
+
+    private function render_personal_credit_row($state_code, $index, $row)
+    {
+        $min = isset($row['min_income']) ? $row['min_income'] : '';
+        $max = isset($row['max_income']) ? $row['max_income'] : '';
+        $credit = isset($row['credit']) ? $row['credit'] : '';
+        $html = '<tr>';
+        $html .= '<td><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($state_code) . '][personal_credit_brackets][' . esc_attr($index) . '][min_income]" value="' . esc_attr($min) . '" /></td>';
+        $html .= '<td><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($state_code) . '][personal_credit_brackets][' . esc_attr($index) . '][max_income]" value="' . esc_attr($max) . '" /></td>';
+        $html .= '<td><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($state_code) . '][personal_credit_brackets][' . esc_attr($index) . '][credit]" value="' . esc_attr($credit) . '" /></td>';
+        $html .= '<td><button type="button" class="button link-delete ustc-remove-personal-credit">' . esc_html__('Remove', 'ustc2025') . '</button></td>';
         $html .= '</tr>';
         return $html;
     }
@@ -1913,13 +1994,48 @@ JS;
                 number_format($taxable, 2), number_format($tax, 2));
         }
 
-        // Calculate tax difference: tax - withholding
-        $tax_diff = $tax - $withholding;
+        // Calculate personal credit based on total income
+        $personal_credit = 0;
+        $personal_credit_brackets = isset($settings['personal_credit_brackets']) ? $settings['personal_credit_brackets'] : [];
 
-        $breakdown[] = sprintf(__('State tax difference = Tax (%s) - Withholding (%s) = %s', 'ustc2025'),
-            number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+        if (!empty($personal_credit_brackets)) {
+            foreach ($personal_credit_brackets as $bracket) {
+                $min = floatval($bracket['min_income']);
+                $max = $bracket['max_income'] === '' ? null : floatval($bracket['max_income']);
+                $credit = floatval($bracket['credit']);
 
-        return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+                if ($gross >= $min && ($max === null || $gross <= $max)) {
+                    $personal_credit = $credit;
+                    $breakdown[] = sprintf(__('Personal credit based on total income (%s): $%s', 'ustc2025'),
+                        number_format($gross, 2), number_format($personal_credit, 2));
+                    break;
+                }
+            }
+        }
+
+        // Calculate tax after personal credit
+        $tax_after_credit = $tax - $personal_credit;
+
+        if ($personal_credit > 0) {
+            $breakdown[] = sprintf(__('Tax after personal credit = Tax (%s) - Personal credit (%s) = %s', 'ustc2025'),
+                number_format($tax, 2), number_format($personal_credit, 2), number_format($tax_after_credit, 2));
+        }
+
+        // Apply refund logic
+        if ($tax_after_credit <= 0) {
+            // Full refund of state withholding
+            $breakdown[] = sprintf(__('Tax after credit is zero or negative; full refund of state withholding: %s', 'ustc2025'),
+                number_format($withholding, 2));
+            return ['tax' => 0, 'tax_diff' => -$withholding, 'breakdown' => $breakdown];
+        }
+
+        // Calculate final tax owed or refund
+        $tax_diff = $tax_after_credit - $withholding;
+
+        $breakdown[] = sprintf(__('Tax difference = Tax after credit (%s) - Withholding (%s) = %s', 'ustc2025'),
+            number_format($tax_after_credit, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+
+        return ['tax' => $tax_after_credit, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 
     private function delaware_tax($gross, $withholding, $settings, &$breakdown)
