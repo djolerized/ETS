@@ -1316,6 +1316,9 @@ JS;
         if ($code === 'MD') {
             return $this->maryland_tax_calculation($gross, $withholding, $residency, $settings);
         }
+        if ($code === 'DE') {
+            return $this->delaware_tax($gross, $withholding, $settings, $breakdown);
+        }
 
         $personal_deduction = 0;
         $personal_credit = isset($settings['personal_credit']) ? floatval($settings['personal_credit']) : 0;
@@ -1909,25 +1912,85 @@ JS;
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 
-    private function delaware_tax($taxable, &$breakdown)
+    private function delaware_tax($gross, $withholding, $settings, &$breakdown)
     {
-        if ($taxable <= 2000) {
-            $tax = 0;
-        } elseif ($taxable <= 5000) {
-            $tax = 0.022 * ($taxable - 2000);
-        } elseif ($taxable <= 10000) {
-            $tax = 66 + 0.039 * ($taxable - 5000);
-        } elseif ($taxable <= 20000) {
-            $tax = 261 + 0.048 * ($taxable - 10000);
-        } elseif ($taxable <= 25000) {
-            $tax = 741 + 0.052 * ($taxable - 20000);
-        } elseif ($taxable <= 60000) {
-            $tax = 1001 + 0.0555 * ($taxable - 25000);
-        } else {
-            $tax = 2943.50 + 0.066 * ($taxable - 60000);
+        // Check for full refund threshold based on total income
+        if ($gross <= 9400) {
+            $breakdown[] = sprintf(__('Total income (%s) at or below Delaware full refund threshold ($9,400); full refund of state withholding.', 'ustc2025'),
+                number_format($gross, 2));
+            return ['tax' => 0, 'tax_diff' => -$withholding, 'breakdown' => $breakdown];
         }
-        $breakdown[] = sprintf(__('Delaware tax computed: %s', 'ustc2025'), number_format($tax, 2));
-        return $tax;
+
+        // Delaware deduction and personal tax credit
+        $delaware_deduction = 3250;
+        $personal_tax_credit = 110;
+
+        // Calculate taxable income
+        $taxable = max(0, $gross - $delaware_deduction);
+
+        $breakdown[] = sprintf(__('Taxable income = Total income (%s) - Delaware Deduction (%s) = %s', 'ustc2025'),
+            number_format($gross, 2), number_format($delaware_deduction, 2), number_format($taxable, 2));
+
+        // Progressive tax brackets for Delaware
+        // $0 to $2,000 -> 0.00%
+        // $2,001 to $5,000 -> 2.20%
+        // $5,001 to $10,000 -> 3.90%
+        // $10,001 to $20,000 -> 4.80%
+        // $20,001 to $25,000 -> 5.20%
+        // $25,001 to $60,000 -> 5.55%
+        // $60,001 or more -> 6.60%
+
+        $state_tax = 0;
+
+        if ($taxable <= 2000) {
+            $state_tax = 0;
+            $breakdown[] = sprintf(__('Tax = %s * 0%% = %s', 'ustc2025'),
+                number_format($taxable, 2), number_format($state_tax, 2));
+        } elseif ($taxable <= 5000) {
+            $state_tax = 0.022 * ($taxable - 2000);
+            $breakdown[] = sprintf(__('Tax = (%s - $2,000) * 2.2%% = %s', 'ustc2025'),
+                number_format($taxable, 2), number_format($state_tax, 2));
+        } elseif ($taxable <= 10000) {
+            $state_tax = 66 + 0.039 * ($taxable - 5000);
+            $breakdown[] = sprintf(__('Tax = $66 + (%s - $5,000) * 3.9%% = %s', 'ustc2025'),
+                number_format($taxable, 2), number_format($state_tax, 2));
+        } elseif ($taxable <= 20000) {
+            $state_tax = 261 + 0.048 * ($taxable - 10000);
+            $breakdown[] = sprintf(__('Tax = $261 + (%s - $10,000) * 4.8%% = %s', 'ustc2025'),
+                number_format($taxable, 2), number_format($state_tax, 2));
+        } elseif ($taxable <= 25000) {
+            $state_tax = 741 + 0.052 * ($taxable - 20000);
+            $breakdown[] = sprintf(__('Tax = $741 + (%s - $20,000) * 5.2%% = %s', 'ustc2025'),
+                number_format($taxable, 2), number_format($state_tax, 2));
+        } elseif ($taxable <= 60000) {
+            $state_tax = 1001 + 0.0555 * ($taxable - 25000);
+            $breakdown[] = sprintf(__('Tax = $1,001 + (%s - $25,000) * 5.55%% = %s', 'ustc2025'),
+                number_format($taxable, 2), number_format($state_tax, 2));
+        } else {
+            $state_tax = 2943.50 + 0.066 * ($taxable - 60000);
+            $breakdown[] = sprintf(__('Tax = $2,943.50 + (%s - $60,000) * 6.6%% = %s', 'ustc2025'),
+                number_format($taxable, 2), number_format($state_tax, 2));
+        }
+
+        // Apply personal tax credit
+        $tax_after_credit = $state_tax - $personal_tax_credit;
+
+        $breakdown[] = sprintf(__('Tax after personal credit = Tax (%s) - Personal Tax Credit (%s) = %s', 'ustc2025'),
+            number_format($state_tax, 2), number_format($personal_tax_credit, 2), number_format($tax_after_credit, 2));
+
+        // If tax after credit is <= 0, full refund of withholding
+        if ($tax_after_credit <= 0) {
+            $breakdown[] = __('Tax after credit is at or below zero; full refund of state withholding.', 'ustc2025');
+            return ['tax' => 0, 'tax_diff' => -$withholding, 'breakdown' => $breakdown];
+        }
+
+        // Calculate tax difference: tax_after_credit - withholding
+        $tax_diff = $tax_after_credit - $withholding;
+
+        $breakdown[] = sprintf(__('State tax difference = Tax after credit (%s) - Withholding (%s) = %s', 'ustc2025'),
+            number_format($tax_after_credit, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+
+        return ['tax' => $tax_after_credit, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 
     private function california_tax($taxable, &$breakdown)
