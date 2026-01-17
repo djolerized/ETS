@@ -1787,12 +1787,21 @@ JS;
 
         $breakdown[] = sprintf(__('Taxable income = Total income (%s) - Maryland deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($state_deduction, 2), number_format($taxable, 2));
 
-        $tax = $this->maryland_tax($taxable, $breakdown);
+        $state_tax_md = $this->maryland_tax($taxable, $breakdown);
 
-        $tax_diff = $withholding - $tax;
-        $breakdown[] = sprintf(__('Tax difference = State withholding (%s) - State tax (%s) = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format($tax_diff, 2));
-
-        return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+        if ($residency === 'nonresident') {
+            $local_tax = 0.0225 * $taxable;
+            $breakdown[] = sprintf(__('Local tax (2.25%% of taxable income): %s', 'ustc2025'), number_format($local_tax, 2));
+            $total_tax = $state_tax_md + $local_tax;
+            $breakdown[] = sprintf(__('Total state tax (nonresident) = State tax (%s) + Local tax (%s) = %s', 'ustc2025'), number_format($state_tax_md, 2), number_format($local_tax, 2), number_format($total_tax, 2));
+            $tax_diff = $withholding - $total_tax;
+            $breakdown[] = sprintf(__('Tax difference = State withholding (%s) - Total state tax (%s) = %s', 'ustc2025'), number_format($withholding, 2), number_format($total_tax, 2), number_format($tax_diff, 2));
+            return ['tax' => $total_tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+        } else {
+            $tax_diff = $withholding - $state_tax_md;
+            $breakdown[] = sprintf(__('Tax difference = State withholding (%s) - State tax (%s) = %s', 'ustc2025'), number_format($withholding, 2), number_format($state_tax_md, 2), number_format($tax_diff, 2));
+            return ['tax' => $state_tax_md, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+        }
     }
 
     private function maryland_tax($taxable, &$breakdown)
