@@ -188,7 +188,8 @@ class USTaxCalculator2025
                 'personal_credit' => 0,
                 'calculation_mode' => 'flat_rate',
                 'flat_rate' => 5.3,
-                'id_deduction' => 14600,
+                'id_deduction' => 15000,
+                'non_resident_idaho_deduction' => 4811,
                 'permanent_building_fund_tax' => 10,
                 'brackets' => [],
             ],
@@ -633,6 +634,10 @@ JS;
                 $clean[$code]['id_deduction'] = isset($state_input['id_deduction']) ? floatval($state_input['id_deduction']) : floatval($defaults[$code]['id_deduction']);
             }
 
+            if (isset($defaults[$code]['non_resident_idaho_deduction'])) {
+                $clean[$code]['non_resident_idaho_deduction'] = isset($state_input['non_resident_idaho_deduction']) ? floatval($state_input['non_resident_idaho_deduction']) : floatval($defaults[$code]['non_resident_idaho_deduction']);
+            }
+
             if (isset($defaults[$code]['permanent_building_fund_tax'])) {
                 $clean[$code]['permanent_building_fund_tax'] = isset($state_input['permanent_building_fund_tax']) ? floatval($state_input['permanent_building_fund_tax']) : floatval($defaults[$code]['permanent_building_fund_tax']);
             }
@@ -825,8 +830,10 @@ JS;
                     echo '<div class="ustc2025-col"><label>' . esc_html__('Non-resident deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][deduction_nonresident]" value="' . esc_attr($nonresident_deduction) . '" /></div>';
                 } elseif ($code === 'ID') {
                     $id_deduction = isset($state_settings['id_deduction']) ? $state_settings['id_deduction'] : '';
+                    $non_resident_idaho_deduction = isset($state_settings['non_resident_idaho_deduction']) ? $state_settings['non_resident_idaho_deduction'] : '';
                     $pbf_tax = isset($state_settings['permanent_building_fund_tax']) ? $state_settings['permanent_building_fund_tax'] : '';
                     echo '<div class="ustc2025-col"><label>' . esc_html__('Idaho deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][id_deduction]" value="' . esc_attr($id_deduction) . '" /></div>';
+                    echo '<div class="ustc2025-col"><label>' . esc_html__('Non-resident Idaho deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][non_resident_idaho_deduction]" value="' . esc_attr($non_resident_idaho_deduction) . '" /></div>';
                     echo '<div class="ustc2025-col"><label>' . esc_html__('Permanent building fund tax (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][permanent_building_fund_tax]" value="' . esc_attr($pbf_tax) . '" /></div>';
                 } elseif ($code === 'IA') {
                     $ia_personal_credit = isset($state_settings['ia_personal_credit']) ? $state_settings['ia_personal_credit'] : '';
@@ -2323,15 +2330,16 @@ JS;
     private function idaho_tax($gross, $withholding, $residency, $settings, &$breakdown)
     {
         $flat_rate = isset($settings['flat_rate']) ? floatval($settings['flat_rate']) : 5.3;
-        $deduction = isset($settings['id_deduction']) ? floatval($settings['id_deduction']) : 14600;
+        $resident_deduction = isset($settings['id_deduction']) ? floatval($settings['id_deduction']) : 15000;
+        $non_resident_deduction = isset($settings['non_resident_idaho_deduction']) ? floatval($settings['non_resident_idaho_deduction']) : 4811;
         $pbf_tax = isset($settings['permanent_building_fund_tax']) ? floatval($settings['permanent_building_fund_tax']) : 10;
 
         if ($residency === 'resident') {
-            $taxable = max(0, $gross - $deduction);
-            $breakdown[] = sprintf(__('Idaho resident: Taxable income = Total income (%s) - Idaho deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($deduction, 2), number_format($taxable, 2));
+            $taxable = max(0, $gross - $resident_deduction);
+            $breakdown[] = sprintf(__('Idaho resident: Taxable income = Total income (%s) - Idaho deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($resident_deduction, 2), number_format($taxable, 2));
         } else {
-            $taxable = $gross;
-            $breakdown[] = sprintf(__('Idaho non-resident: Taxable income = Total income (%s)', 'ustc2025'), number_format($gross, 2));
+            $taxable = max(0, $gross - $non_resident_deduction);
+            $breakdown[] = sprintf(__('Idaho non-resident: Taxable income = Total income (%s) - Non-resident Idaho deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($non_resident_deduction, 2), number_format($taxable, 2));
         }
 
         $rate_decimal = $flat_rate / 100;
