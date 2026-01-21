@@ -1886,9 +1886,13 @@ JS;
             $breakdown[] = sprintf(__('Tax difference = Total state tax (%s) - State withholding (%s) = %s', 'ustc2025'), number_format($total_tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
             return ['tax' => $total_tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
         } else {
-            $tax_diff = $state_tax_md - $withholding;
-            $breakdown[] = sprintf(__('Tax difference = State tax (%s) - State withholding (%s) = %s', 'ustc2025'), number_format($state_tax_md, 2), number_format($withholding, 2), number_format($tax_diff, 2));
-            return ['tax' => $state_tax_md, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+            $local_tax = 0.0225 * $taxable;
+            $breakdown[] = sprintf(__('Local tax (2.25%% of taxable income): %s', 'ustc2025'), number_format($local_tax, 2));
+            $total_tax = $state_tax_md + $local_tax;
+            $breakdown[] = sprintf(__('Total state tax (resident) = State tax (%s) + Local tax (%s) = %s', 'ustc2025'), number_format($state_tax_md, 2), number_format($local_tax, 2), number_format($total_tax, 2));
+            $tax_diff = $total_tax - $withholding;
+            $breakdown[] = sprintf(__('Tax difference = Total state tax (%s) - State withholding (%s) = %s', 'ustc2025'), number_format($total_tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+            return ['tax' => $total_tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
         }
     }
 
