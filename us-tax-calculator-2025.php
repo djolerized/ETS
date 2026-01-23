@@ -254,6 +254,7 @@ class USTaxCalculator2025
             'MD' => [
                 'state_deduction' => 6550,
                 'personal_credit' => 0,
+                'poverty_credit' => 15650,
                 'calculation_mode' => 'progressive_brackets',
                 'flat_rate' => '',
                 'brackets' => [
@@ -654,6 +655,10 @@ JS;
                 $clean[$code]['va_low_income_credit'] = isset($state_input['va_low_income_credit']) ? floatval($state_input['va_low_income_credit']) : floatval($defaults[$code]['va_low_income_credit']);
             }
 
+            if (isset($defaults[$code]['poverty_credit'])) {
+                $clean[$code]['poverty_credit'] = isset($state_input['poverty_credit']) ? floatval($state_input['poverty_credit']) : floatval($defaults[$code]['poverty_credit']);
+            }
+
             if (!empty($defaults[$code]['full_refund_threshold'])) {
                 $clean[$code]['full_refund_threshold'] = floatval($defaults[$code]['full_refund_threshold']);
             }
@@ -907,6 +912,9 @@ JS;
                 } else {
                     echo '<div class="ustc2025-col"><label>' . esc_html__('State deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" /></div>';
                     echo '<div class="ustc2025-col"><label>' . esc_html__('Personal credit (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" /></div>';
+                    if ($code === 'MD') {
+                        echo '<div class="ustc2025-col"><label>' . esc_html__('Poverty credit threshold (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][poverty_credit]" value="' . esc_attr($state_settings['poverty_credit']) . '" /></div>';
+                    }
                 }
                 echo '</div>';
                 echo '<div class="ustc2025-row">';
@@ -1866,6 +1874,16 @@ JS;
     private function maryland_tax_calculation($gross, $withholding, $residency, $settings)
     {
         $breakdown = [];
+        $poverty_credit = isset($settings['poverty_credit']) ? floatval($settings['poverty_credit']) : 15650;
+
+        // Check if total income qualifies for poverty credit (full refund)
+        if ($gross < $poverty_credit) {
+            $breakdown[] = sprintf(__('Total income (%s) is below poverty credit threshold (%s). Full refund of state withholding.', 'ustc2025'), number_format($gross, 2), number_format($poverty_credit, 2));
+            $tax_diff = -$withholding;
+            $breakdown[] = sprintf(__('Tax difference = 0 - State withholding (%s) = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax_diff, 2));
+            return ['tax' => 0, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+        }
+
         $state_deduction = isset($settings['state_deduction']) ? floatval($settings['state_deduction']) : 6550;
 
         $taxable = $gross - $state_deduction;
