@@ -388,8 +388,8 @@ class USTaxCalculator2025
                 'brackets' => [],
             ],
             'OR' => [
-                'state_deduction' => 0,
-                'personal_credit' => 0,
+                'or_resident_deduction' => 2835,
+                'or_personal_exemption' => 256,
                 'calculation_mode' => 'progressive_brackets',
                 'flat_rate' => '',
                 'brackets' => [
@@ -1674,59 +1674,76 @@ JS;
     private function oregon_tax($gross, $withholding, $residency, $settings, $federal_result)
     {
         $breakdown = [];
-        $federal_tax = isset($federal_result['tax']) ? floatval($federal_result['tax']) : 0;
-        $state_deduction = isset($settings['state_deduction']) ? floatval($settings['state_deduction']) : 0;
-        $personal_exemption = isset($settings['personal_credit']) ? floatval($settings['personal_credit']) : 0;
+        $federal_withholding = isset($federal_result['tax']) ? floatval($federal_result['tax']) : 0;
+        $or_resident_deduction = isset($settings['or_resident_deduction']) ? floatval($settings['or_resident_deduction']) : 2835;
+        $personal_exemption = isset($settings['or_personal_exemption']) ? floatval($settings['or_personal_exemption']) : 256;
 
-        $taxable = $gross - $federal_tax;
-        $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - FederalTax (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($federal_tax, 2), number_format($taxable, 2));
+        if ($residency === 'resident') {
+            $taxable = $gross - $or_resident_deduction - $federal_withholding;
+            $breakdown[] = sprintf(__('Oregon resident: Taxable income = Total income (%s) - OR resident deduction (%s) - Federal withholding (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($or_resident_deduction, 2), number_format($federal_withholding, 2), number_format($taxable, 2));
+        } else {
+            $taxable = $gross - $federal_withholding;
+            $breakdown[] = sprintf(__('Oregon non-resident: Taxable income = Total income (%s) - Federal withholding (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($federal_withholding, 2), number_format($taxable, 2));
+        }
+
         if ($taxable < 0) {
             $taxable = 0;
         }
 
-        $mode = isset($settings['calculation_mode']) ? $settings['calculation_mode'] : 'progressive_brackets';
-        if ($mode === 'flat_rate') {
-            $rate = isset($settings['flat_rate']) ? floatval($settings['flat_rate']) : 0;
-            $tax = $taxable * ($rate / 100);
-            $breakdown[] = sprintf(__('State tax = %s * %s%% = %s', 'ustc2025'), number_format($taxable, 2), $rate, number_format($tax, 2));
+        $brackets = isset($settings['brackets']) ? $settings['brackets'] : [];
+        if (empty($brackets)) {
+            $state_tax = 0;
+            $breakdown[] = __('No brackets configured; state tax set to 0.', 'ustc2025');
         } else {
-            $brackets = isset($settings['brackets']) ? $settings['brackets'] : [];
-            if (empty($brackets)) {
-                $tax = 0;
-                $breakdown[] = __('No brackets configured; state tax set to 0.', 'ustc2025');
-            } else {
-                usort($brackets, function ($a, $b) {
-                    return floatval($a['min_income']) <=> floatval($b['min_income']);
-                });
+            usort($brackets, function ($a, $b) {
+                return floatval($a['min_income']) <=> floatval($b['min_income']);
+            });
 
-                $tax = 0;
-                foreach ($brackets as $index => $row) {
-                    $min = floatval($row['min_income']);
-                    $max = $row['max_income'] === '' ? null : floatval($row['max_income']);
-                    $rate = floatval($row['rate']);
+            $state_tax = 0;
+            foreach ($brackets as $index => $row) {
+                $min = floatval($row['min_income']);
+                $max = $row['max_income'] === '' ? null : floatval($row['max_income']);
+                $rate = floatval($row['rate']);
 
-                    if ($taxable <= $min) {
-                        continue;
-                    }
+                if ($taxable <= $min) {
+                    continue;
+                }
 
-                    $upper = $max === null ? $taxable : min($max, $taxable);
-                    $portion = max(0, $upper - $min);
-                    $segment_tax = $portion * ($rate / 100);
-                    $tax += $segment_tax;
+                $upper = $max === null ? $taxable : min($max, $taxable);
+                $portion = max(0, $upper - $min);
+                $segment_tax = $portion * ($rate / 100);
+                $state_tax += $segment_tax;
 
-                    $range_label = $max === null ? sprintf(__('above %s', 'ustc2025'), number_format($min, 2)) : sprintf(__('between %s and %s', 'ustc2025'), number_format($min, 2), number_format($max, 2));
-                    $breakdown[] = sprintf(__('Bracket %s: (%s - %s) * %s%% = %s', 'ustc2025'), $range_label, number_format($upper, 2), number_format($min, 2), $rate, number_format($segment_tax, 2));
+                $range_label = $max === null ? sprintf(__('above %s', 'ustc2025'), number_format($min, 2)) : sprintf(__('between %s and %s', 'ustc2025'), number_format($min, 2), number_format($max, 2));
+                $breakdown[] = sprintf(__('Bracket %s: (%s - %s) * %s%% = %s', 'ustc2025'), $range_label, number_format($upper, 2), number_format($min, 2), $rate, number_format($segment_tax, 2));
 
-                    if ($max !== null && $taxable <= $max) {
-                        break;
-                    }
+                if ($max !== null && $taxable <= $max) {
+                    break;
                 }
             }
         }
 
-        $tax_diff = $tax - $withholding - $personal_exemption;
-        $breakdown[] = sprintf(__('Tax - withholding - personal exemption = %s - %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($personal_exemption, 2), number_format($tax_diff, 2));
-        return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+        $breakdown[] = sprintf(__('State tax from brackets = %s', 'ustc2025'), number_format($state_tax, 2));
+
+        $tax_after_exemption = $state_tax - $personal_exemption;
+        $breakdown[] = sprintf(__('State tax - Personal exemption = %s - %s = %s', 'ustc2025'), number_format($state_tax, 2), number_format($personal_exemption, 2), number_format($tax_after_exemption, 2));
+
+        if ($tax_after_exemption < 0) {
+            $tax_diff = -$withholding;
+            $breakdown[] = sprintf(__('Tax after exemption is negative, State Tax Refund = %s', 'ustc2025'), number_format($withholding, 2));
+        } else {
+            $final_state_tax = $tax_after_exemption - $withholding;
+            $breakdown[] = sprintf(__('Final state tax = Tax after exemption (%s) - State withholding (%s) = %s', 'ustc2025'), number_format($tax_after_exemption, 2), number_format($withholding, 2), number_format($final_state_tax, 2));
+
+            if ($final_state_tax > 0) {
+                $breakdown[] = sprintf(__('State Tax Owed = %s', 'ustc2025'), number_format($final_state_tax, 2));
+            } else {
+                $breakdown[] = sprintf(__('State Tax Refund = %s', 'ustc2025'), number_format(abs($final_state_tax), 2));
+            }
+            $tax_diff = $final_state_tax;
+        }
+
+        return ['tax' => $state_tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 
     private function minnesota_tax($gross, $withholding, $residency, $settings)
