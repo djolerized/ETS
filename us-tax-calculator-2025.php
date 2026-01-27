@@ -456,6 +456,8 @@ class USTaxCalculator2025
             'UT' => [
                 'state_deduction' => 0,
                 'personal_credit' => 0,
+                'utah_deduction' => 18213,
+                'utah_flat_rate' => 4.5,
                 'calculation_mode' => 'flat_rate',
                 'flat_rate' => 4.5,
                 'brackets' => [],
@@ -1416,6 +1418,9 @@ JS;
         if ($code === 'DE') {
             return $this->delaware_tax($gross, $withholding, $settings, $breakdown);
         }
+        if ($code === 'UT') {
+            return $this->utah_tax($gross, $withholding, $residency, $settings, $federal_result);
+        }
 
         $personal_deduction = 0;
         $personal_credit = isset($settings['personal_credit']) ? floatval($settings['personal_credit']) : 0;
@@ -1744,6 +1749,77 @@ JS;
         }
 
         return ['tax' => $state_tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+    }
+
+    private function utah_tax($gross, $withholding, $residency, $settings, $federal_result)
+    {
+        $breakdown = [];
+        $utah_deduction = isset($settings['utah_deduction']) ? floatval($settings['utah_deduction']) : 18213;
+        $flat_rate = isset($settings['utah_flat_rate']) ? floatval($settings['utah_flat_rate']) : 4.5;
+        $personal_exemption = isset($settings['personal_credit']) ? floatval($settings['personal_credit']) : 0;
+
+        // Get federal standard deduction for residents
+        $federal_settings = get_option($this->option_federal, []);
+        $federal_standard_deduction = isset($federal_settings['std_deduction']) ? floatval($federal_settings['std_deduction']) : 15750;
+
+        // Calculate ut_tax (same for both)
+        $ut_tax = $gross * ($flat_rate / 100);
+        $breakdown[] = sprintf(__('Utah tax = Total income (%s) × %s%% = %s', 'ustc2025'), number_format($gross, 2), $flat_rate, number_format($ut_tax, 2));
+
+        // Calculate initial_credit_before_phase_out based on residency
+        if ($residency === 'resident') {
+            $initial_credit_before_phase_out = $federal_standard_deduction * 0.06;
+            $breakdown[] = sprintf(__('Utah resident: Initial credit before phase out = Federal standard deduction (%s) × 6%% = %s', 'ustc2025'), number_format($federal_standard_deduction, 2), number_format($initial_credit_before_phase_out, 2));
+        } else {
+            $initial_credit_before_phase_out = $withholding * 0.06;
+            $breakdown[] = sprintf(__('Utah non-resident: Initial credit before phase out = State withholding (%s) × 6%% = %s', 'ustc2025'), number_format($withholding, 2), number_format($initial_credit_before_phase_out, 2));
+        }
+
+        // Calculate phaseout_amount
+        $phaseout_amount = ($gross - $utah_deduction) * 0.013;
+        if ($phaseout_amount < 0) {
+            $phaseout_amount = 0;
+        }
+        $breakdown[] = sprintf(__('Phaseout amount = (Total income (%s) - Utah deduction (%s)) × 1.3%% = %s', 'ustc2025'), number_format($gross, 2), number_format($utah_deduction, 2), number_format($phaseout_amount, 2));
+
+        // Calculate tax_payer_credit
+        $credit_diff = $initial_credit_before_phase_out - $phaseout_amount;
+        if ($credit_diff < 0) {
+            $tax_payer_credit = 0;
+            $breakdown[] = sprintf(__('Taxpayer credit = Initial credit (%s) - Phaseout (%s) = %s (set to 0 as negative)', 'ustc2025'), number_format($initial_credit_before_phase_out, 2), number_format($phaseout_amount, 2), number_format($credit_diff, 2));
+        } else {
+            $tax_payer_credit = $credit_diff;
+            $breakdown[] = sprintf(__('Taxpayer credit = Initial credit (%s) - Phaseout (%s) = %s', 'ustc2025'), number_format($initial_credit_before_phase_out, 2), number_format($phaseout_amount, 2), number_format($tax_payer_credit, 2));
+        }
+
+        // Calculate state_tax
+        $state_tax = $ut_tax - $tax_payer_credit;
+        $breakdown[] = sprintf(__('State tax = Utah tax (%s) - Taxpayer credit (%s) = %s', 'ustc2025'), number_format($ut_tax, 2), number_format($tax_payer_credit, 2), number_format($state_tax, 2));
+
+        if ($state_tax > 0) {
+            // final_ut_tax = state_tax - state_withholding
+            $final_ut_tax = $state_tax - $withholding;
+            $breakdown[] = sprintf(__('Final Utah tax = State tax (%s) - State withholding (%s) = %s', 'ustc2025'), number_format($state_tax, 2), number_format($withholding, 2), number_format($final_ut_tax, 2));
+
+            if ($final_ut_tax > 0) {
+                $breakdown[] = sprintf(__('State Tax Owed = %s', 'ustc2025'), number_format($final_ut_tax, 2));
+            } else {
+                $breakdown[] = sprintf(__('State Tax Refund = %s', 'ustc2025'), number_format(abs($final_ut_tax), 2));
+            }
+            $tax_diff = $final_ut_tax;
+        } else {
+            // state_tax <= 0: Full refund of withholding
+            $check_value = $state_tax - $personal_exemption;
+            if ($check_value < 0) {
+                $breakdown[] = sprintf(__('State tax (%s) is negative; State Tax Refund = %s', 'ustc2025'), number_format($state_tax, 2), number_format($withholding, 2));
+                $tax_diff = -$withholding;
+            } else {
+                $tax_diff = $state_tax - $withholding;
+                $breakdown[] = sprintf(__('Final Utah tax = State tax (%s) - State withholding (%s) = %s', 'ustc2025'), number_format($state_tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+            }
+        }
+
+        return ['tax' => $ut_tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 
     private function minnesota_tax($gross, $withholding, $residency, $settings)
