@@ -421,14 +421,15 @@ class USTaxCalculator2025
                 ],
             ],
             'SC' => [
-                'state_deduction' => 14600,
+                'state_deduction' => 15750,
                 'personal_credit' => 0,
+                'sc_resident_deduction' => 15750,
                 'calculation_mode' => 'progressive_brackets',
                 'flat_rate' => '',
                 'brackets' => [
                     ['min_income' => 0, 'max_income' => 3560, 'base_tax' => 0, 'rate' => 0],
                     ['min_income' => 3560, 'max_income' => 17830, 'base_tax' => 0, 'rate' => 3],
-                    ['min_income' => 17830, 'max_income' => '', 'base_tax' => 428.1, 'rate' => 6],
+                    ['min_income' => 17830, 'max_income' => '', 'base_tax' => 428.1, 'rate' => 6.2],
                 ],
             ],
             'SD' => [
@@ -903,6 +904,11 @@ JS;
                 } elseif ($code === 'NY') {
                     $personal_credit_brackets = isset($state_settings['personal_credit_brackets']) ? $state_settings['personal_credit_brackets'] : [];
                     echo '<div class="ustc2025-col"><label>' . esc_html__('New York deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" /></div>';
+                    echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" />';
+                } elseif ($code === 'SC') {
+                    $sc_resident_deduction = isset($state_settings['sc_resident_deduction']) ? $state_settings['sc_resident_deduction'] : '';
+                    echo '<div class="ustc2025-col"><label>' . esc_html__('South Carolina resident deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][sc_resident_deduction]" value="' . esc_attr($sc_resident_deduction) . '" /></div>';
+                    echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" />';
                     echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" />';
                 } else {
                     echo '<div class="ustc2025-col"><label>' . esc_html__('State deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" /></div>';
@@ -1413,6 +1419,9 @@ JS;
         }
         if ($code === 'UT') {
             return $this->utah_tax($gross, $withholding, $residency, $settings, $federal_result);
+        }
+        if ($code === 'SC') {
+            return $this->south_carolina_tax($gross, $withholding, $residency, $settings);
         }
 
         $personal_deduction = 0;
@@ -2363,21 +2372,53 @@ JS;
         return ['tax' => $final_tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 
-    private function south_carolina_tax($gross, $withholding, $residency, $settings, &$breakdown)
+    private function south_carolina_tax($gross, $withholding, $residency, $settings)
     {
-        $deduction = floatval($settings['deduction']);
-        $taxable = $residency === 'resident' ? ($gross - $deduction) : $gross;
-        $breakdown[] = sprintf(__('TaxableIncome = %s', 'ustc2025'), number_format($taxable, 2));
-        if ($taxable <= 3560) {
-            $tax = 0 * $taxable;
-        } elseif ($taxable <= 17830) {
-            $tax = 0 + 0.03 * ($taxable - 3560);
+        $breakdown = [];
+        $sc_resident_deduction = isset($settings['sc_resident_deduction']) ? floatval($settings['sc_resident_deduction']) : 15750;
+
+        // Residents get the deduction, non-residents do not
+        if ($residency === 'resident') {
+            $taxable = max(0, $gross - $sc_resident_deduction);
+            $breakdown[] = sprintf(__('South Carolina resident: Taxable income = Total income (%s) - SC resident deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($sc_resident_deduction, 2), number_format($taxable, 2));
         } else {
-            $tax = (0 + 0.03 * (17830 - 3560)) + 0.06 * ($taxable - 17830);
+            $taxable = $gross;
+            $breakdown[] = sprintf(__('South Carolina non-resident: Taxable income = Total income (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($taxable, 2));
         }
-        $breakdown[] = sprintf(__('South Carolina tax computed: %s', 'ustc2025'), number_format($tax, 2));
+
+        // Apply South Carolina tax brackets
+        // $0 to $3,560 -> 0%
+        // $3,561 to $17,830 -> 3%
+        // $17,831 or more -> 6.2%
+        $b1 = 3560;
+        $b2 = 17830;
+        $r1 = 0.00;
+        $r2 = 0.03;
+        $r3 = 0.062;
+
+        if ($taxable <= $b1) {
+            $tax = $taxable * $r1;
+            $breakdown[] = sprintf(__('Tax bracket: $0-$3,560 at 0%%: %s', 'ustc2025'), number_format($tax, 2));
+        } elseif ($taxable <= $b2) {
+            $tax = ($taxable - $b1) * $r2;
+            $breakdown[] = sprintf(__('Tax bracket: $3,561-$17,830 at 3%%: %s', 'ustc2025'), number_format($tax, 2));
+        } else {
+            $tax_bracket2 = ($b2 - $b1) * $r2;
+            $tax_bracket3 = ($taxable - $b2) * $r3;
+            $tax = $tax_bracket2 + $tax_bracket3;
+            $breakdown[] = sprintf(__('Tax bracket: $3,561-$17,830 at 3%%: %s', 'ustc2025'), number_format($tax_bracket2, 2));
+            $breakdown[] = sprintf(__('Tax bracket: $17,831+ at 6.2%%: %s', 'ustc2025'), number_format($tax_bracket3, 2));
+        }
+
+        $breakdown[] = sprintf(__('South Carolina state tax computed: %s', 'ustc2025'), number_format($tax, 2));
+
         $tax_diff = $tax - $withholding;
-        $breakdown[] = sprintf(__('Tax - withholding = %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+        if ($tax_diff < 0) {
+            $breakdown[] = sprintf(__('State Tax Return: %s - %s = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format(abs($tax_diff), 2));
+        } else {
+            $breakdown[] = sprintf(__('State Tax Owed: %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
+        }
+
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
     }
 
