@@ -37,6 +37,7 @@ class USTaxCalculator2025
         ['code' => 'MI', 'name' => 'Michigan'],
         ['code' => 'MN', 'name' => 'Minnesota'],
         ['code' => 'MO', 'name' => 'Missouri'],
+        ['code' => 'MT', 'name' => 'Montana'],
         ['code' => 'NC', 'name' => 'North Carolina'],
         ['code' => 'ND', 'name' => 'North Dakota'],
         ['code' => 'NH', 'name' => 'New Hampshire'],
@@ -317,6 +318,17 @@ class USTaxCalculator2025
                     ['min_income' => 50000, 'max_income' => 100000, 'rate' => 15],
                     ['min_income' => 100000, 'max_income' => 125000, 'rate' => 5],
                     ['min_income' => 125000, 'max_income' => '', 'rate' => 0],
+                ],
+            ],
+            'MT' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'montana_deduction' => 15750,
+                'calculation_mode' => 'progressive_brackets',
+                'flat_rate' => '',
+                'brackets' => [
+                    ['min_income' => 0, 'max_income' => 21100, 'base_tax' => 0, 'rate' => 4.7],
+                    ['min_income' => 21100, 'max_income' => '', 'base_tax' => 991.70, 'rate' => 5.9],
                 ],
             ],
             'NJ' => [
@@ -934,6 +946,11 @@ JS;
                     echo '<div class="ustc2025-col"><label>' . esc_html__('Vermont deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][vermont_deduction]" value="' . esc_attr($vermont_deduction) . '" /></div>';
                     echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" />';
                     echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" />';
+                } elseif ($code === 'MT') {
+                    $montana_deduction = isset($state_settings['montana_deduction']) ? $state_settings['montana_deduction'] : '';
+                    echo '<div class="ustc2025-col"><label>' . esc_html__('Montana deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][montana_deduction]" value="' . esc_attr($montana_deduction) . '" /></div>';
+                    echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" />';
+                    echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" />';
                 } else {
                     echo '<div class="ustc2025-col"><label>' . esc_html__('State deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" /></div>';
                     echo '<div class="ustc2025-col"><label>' . esc_html__('Personal credit (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" /></div>';
@@ -1449,6 +1466,9 @@ JS;
         }
         if ($code === 'VT') {
             return $this->vermont_tax($gross, $withholding, $residency, $settings);
+        }
+        if ($code === 'MT') {
+            return $this->montana_tax($gross, $withholding, $residency, $settings);
         }
 
         $personal_deduction = 0;
@@ -2519,6 +2539,53 @@ JS;
         }
 
         $breakdown[] = sprintf(__('Vermont state tax computed: %s', 'ustc2025'), number_format($tax, 2));
+
+        $tax_diff = $withholding - $tax;
+        if ($tax_diff > 0) {
+            $breakdown[] = sprintf(__('State Tax Return: %s - %s = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format($tax_diff, 2));
+        } else {
+            $breakdown[] = sprintf(__('State Tax Owed: %s - %s = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format(abs($tax_diff), 2));
+        }
+
+        return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+    }
+
+    private function montana_tax($gross, $withholding, $residency, $settings)
+    {
+        $breakdown = [];
+        $montana_deduction = isset($settings['montana_deduction']) ? floatval($settings['montana_deduction']) : 15750;
+
+        // Residents: taxable_income = total_income - montana_deduction
+        // Non-residents: taxable_income = total_income + state_withholding
+        if ($residency === 'resident') {
+            $taxable = max(0, $gross - $montana_deduction);
+            $breakdown[] = sprintf(__('Montana resident: Taxable income = Total income (%s) - Montana deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($montana_deduction, 2), number_format($taxable, 2));
+        } else {
+            $taxable = $gross + $withholding;
+            $breakdown[] = sprintf(__('Montana non-resident: Taxable income = Total income (%s) + State withholding (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($withholding, 2), number_format($taxable, 2));
+        }
+
+        // Apply Montana tax brackets
+        // $0 to $21,100 -> 4.7%
+        // $21,101 or more -> 5.9%
+        $b1 = 21100;
+        $r1 = 0.047;
+        $r2 = 0.059;
+
+        $tax = 0;
+
+        if ($taxable <= $b1) {
+            $tax = $taxable * $r1;
+            $breakdown[] = sprintf(__('Tax bracket: $0 to $21,100 at 4.7%%: %s', 'ustc2025'), number_format($tax, 2));
+        } else {
+            $tax_bracket1 = $b1 * $r1;
+            $tax_bracket2 = ($taxable - $b1) * $r2;
+            $tax = $tax_bracket1 + $tax_bracket2;
+            $breakdown[] = sprintf(__('Tax bracket: $0 to $21,100 at 4.7%%: %s', 'ustc2025'), number_format($tax_bracket1, 2));
+            $breakdown[] = sprintf(__('Tax bracket: $21,101+ at 5.9%%: %s', 'ustc2025'), number_format($tax_bracket2, 2));
+        }
+
+        $breakdown[] = sprintf(__('Montana state tax computed: %s', 'ustc2025'), number_format($tax, 2));
 
         $tax_diff = $withholding - $tax;
         if ($tax_diff > 0) {
