@@ -29,6 +29,7 @@ class USTaxCalculator2025
         ['code' => 'HI', 'name' => 'Hawaii'],
         ['code' => 'IA', 'name' => 'Iowa'],
         ['code' => 'ID', 'name' => 'Idaho'],
+        ['code' => 'IL', 'name' => 'Illinois'],
         ['code' => 'KY', 'name' => 'Kentucky'],
         ['code' => 'LA', 'name' => 'Louisiana'],
         ['code' => 'ME', 'name' => 'Maine'],
@@ -193,6 +194,14 @@ class USTaxCalculator2025
                 'flat_rate' => 5.3,
                 'id_deduction' => 15000,
                 'permanent_building_fund_tax' => 10,
+                'brackets' => [],
+            ],
+            'IL' => [
+                'state_deduction' => 0,
+                'personal_credit' => 0,
+                'illinois_deduction' => 2850,
+                'calculation_mode' => 'flat_rate',
+                'flat_rate' => 4.95,
                 'brackets' => [],
             ],
             'IA' => [
@@ -742,6 +751,18 @@ JS;
                 $clean[$code]['vermont_deduction'] = isset($state_input['vermont_deduction']) ? floatval($state_input['vermont_deduction']) : floatval($defaults[$code]['vermont_deduction']);
             }
 
+            if (isset($defaults[$code]['montana_deduction'])) {
+                $clean[$code]['montana_deduction'] = isset($state_input['montana_deduction']) ? floatval($state_input['montana_deduction']) : floatval($defaults[$code]['montana_deduction']);
+            }
+
+            if (isset($defaults[$code]['ohio_deduction'])) {
+                $clean[$code]['ohio_deduction'] = isset($state_input['ohio_deduction']) ? floatval($state_input['ohio_deduction']) : floatval($defaults[$code]['ohio_deduction']);
+            }
+
+            if (isset($defaults[$code]['illinois_deduction'])) {
+                $clean[$code]['illinois_deduction'] = isset($state_input['illinois_deduction']) ? floatval($state_input['illinois_deduction']) : floatval($defaults[$code]['illinois_deduction']);
+            }
+
             if (isset($state_input['brackets']) && is_array($state_input['brackets'])) {
                 foreach ($state_input['brackets'] as $row) {
                     if ($row === null) {
@@ -967,6 +988,11 @@ JS;
                 } elseif ($code === 'OH') {
                     $ohio_deduction = isset($state_settings['ohio_deduction']) ? $state_settings['ohio_deduction'] : '';
                     echo '<div class="ustc2025-col"><label>' . esc_html__('Ohio deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][ohio_deduction]" value="' . esc_attr($ohio_deduction) . '" /></div>';
+                    echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" />';
+                    echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" />';
+                } elseif ($code === 'IL') {
+                    $illinois_deduction = isset($state_settings['illinois_deduction']) ? $state_settings['illinois_deduction'] : '';
+                    echo '<div class="ustc2025-col"><label>' . esc_html__('Illinois deduction (USD)', 'ustc2025') . '</label><input type="number" step="0.01" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][illinois_deduction]" value="' . esc_attr($illinois_deduction) . '" /></div>';
                     echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][state_deduction]" value="' . esc_attr($state_settings['state_deduction']) . '" />';
                     echo '<input type="hidden" name="' . esc_attr($this->option_state) . '[' . esc_attr($code) . '][personal_credit]" value="' . esc_attr($state_settings['personal_credit']) . '" />';
                 } else {
@@ -1490,6 +1516,9 @@ JS;
         }
         if ($code === 'OH') {
             return $this->ohio_tax($gross, $withholding, $residency, $settings);
+        }
+        if ($code === 'IL') {
+            return $this->illinois_tax($gross, $withholding, $residency, $settings);
         }
 
         $personal_deduction = 0;
@@ -2663,6 +2692,36 @@ JS;
         }
 
         $breakdown[] = sprintf(__('Ohio state tax computed: %s', 'ustc2025'), number_format($tax, 2));
+
+        $tax_diff = $withholding - $tax;
+        if ($tax_diff > 0) {
+            $breakdown[] = sprintf(__('State Tax Return: %s - %s = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format($tax_diff, 2));
+        } else {
+            $breakdown[] = sprintf(__('State Tax Owed: %s - %s = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format(abs($tax_diff), 2));
+        }
+
+        return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
+    }
+
+    private function illinois_tax($gross, $withholding, $residency, $settings)
+    {
+        $breakdown = [];
+        $illinois_deduction = isset($settings['illinois_deduction']) ? floatval($settings['illinois_deduction']) : 2850;
+        $flat_rate = isset($settings['flat_rate']) ? floatval($settings['flat_rate']) : 4.95;
+
+        // Same formula for both resident and non-resident
+        $taxable = max(0, $gross - $illinois_deduction);
+        if ($residency === 'resident') {
+            $breakdown[] = sprintf(__('Illinois resident: Taxable income = Total income (%s) - Illinois deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($illinois_deduction, 2), number_format($taxable, 2));
+        } else {
+            $breakdown[] = sprintf(__('Illinois non-resident: Taxable income = Total income (%s) - Illinois deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($illinois_deduction, 2), number_format($taxable, 2));
+        }
+
+        // Apply Illinois flat rate tax
+        $tax = $taxable * ($flat_rate / 100);
+        $breakdown[] = sprintf(__('Illinois flat rate tax: %s × %.2f%% = %s', 'ustc2025'), number_format($taxable, 2), $flat_rate, number_format($tax, 2));
+
+        $breakdown[] = sprintf(__('Illinois state tax computed: %s', 'ustc2025'), number_format($tax, 2));
 
         $tax_diff = $withholding - $tax;
         if ($tax_diff > 0) {
