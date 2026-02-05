@@ -2524,13 +2524,12 @@ JS;
         $breakdown = [];
         $vermont_deduction = isset($settings['vermont_deduction']) ? floatval($settings['vermont_deduction']) : 12950;
 
-        // Residents get the deduction, non-residents do not
+        // Same formula for both resident and non-resident
+        $taxable = max(0, $gross - $vermont_deduction);
         if ($residency === 'resident') {
-            $taxable = max(0, $gross - $vermont_deduction);
             $breakdown[] = sprintf(__('Vermont resident: Taxable income = Total income (%s) - Vermont deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($vermont_deduction, 2), number_format($taxable, 2));
         } else {
-            $taxable = $gross;
-            $breakdown[] = sprintf(__('Vermont non-resident: Taxable income = Total income (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($taxable, 2));
+            $breakdown[] = sprintf(__('Vermont non-resident: Taxable income = Total income (%s) - Vermont deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($vermont_deduction, 2), number_format($taxable, 2));
         }
 
         // Apply Vermont tax brackets
@@ -2590,11 +2589,11 @@ JS;
 
         $breakdown[] = sprintf(__('Vermont state tax computed: %s', 'ustc2025'), number_format($tax, 2));
 
-        $tax_diff = $withholding - $tax;
+        $tax_diff = $tax - $withholding;
         if ($tax_diff > 0) {
-            $breakdown[] = sprintf(__('State Tax Return: %s - %s = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format($tax_diff, 2));
+            $breakdown[] = sprintf(__('State Tax Owed: %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
         } else {
-            $breakdown[] = sprintf(__('State Tax Owed: %s - %s = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format(abs($tax_diff), 2));
+            $breakdown[] = sprintf(__('State Tax Refund: %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
         }
 
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
@@ -2637,11 +2636,11 @@ JS;
 
         $breakdown[] = sprintf(__('Montana state tax computed: %s', 'ustc2025'), number_format($tax, 2));
 
-        $tax_diff = $withholding - $tax;
+        $tax_diff = $tax - $withholding;
         if ($tax_diff > 0) {
-            $breakdown[] = sprintf(__('State Tax Return: %s - %s = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format($tax_diff, 2));
+            $breakdown[] = sprintf(__('State Tax Owed: %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
         } else {
-            $breakdown[] = sprintf(__('State Tax Owed: %s - %s = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format(abs($tax_diff), 2));
+            $breakdown[] = sprintf(__('State Tax Refund: %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
         }
 
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
@@ -2693,11 +2692,11 @@ JS;
 
         $breakdown[] = sprintf(__('Ohio state tax computed: %s', 'ustc2025'), number_format($tax, 2));
 
-        $tax_diff = $withholding - $tax;
+        $tax_diff = $tax - $withholding;
         if ($tax_diff > 0) {
-            $breakdown[] = sprintf(__('State Tax Return: %s - %s = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format($tax_diff, 2));
+            $breakdown[] = sprintf(__('State Tax Owed: %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
         } else {
-            $breakdown[] = sprintf(__('State Tax Owed: %s - %s = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format(abs($tax_diff), 2));
+            $breakdown[] = sprintf(__('State Tax Refund: %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
         }
 
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
@@ -2723,11 +2722,11 @@ JS;
 
         $breakdown[] = sprintf(__('Illinois state tax computed: %s', 'ustc2025'), number_format($tax, 2));
 
-        $tax_diff = $withholding - $tax;
+        $tax_diff = $tax - $withholding;
         if ($tax_diff > 0) {
-            $breakdown[] = sprintf(__('State Tax Return: %s - %s = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format($tax_diff, 2));
+            $breakdown[] = sprintf(__('State Tax Owed: %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
         } else {
-            $breakdown[] = sprintf(__('State Tax Owed: %s - %s = %s', 'ustc2025'), number_format($withholding, 2), number_format($tax, 2), number_format(abs($tax_diff), 2));
+            $breakdown[] = sprintf(__('State Tax Refund: %s - %s = %s', 'ustc2025'), number_format($tax, 2), number_format($withholding, 2), number_format($tax_diff, 2));
         }
 
         return ['tax' => $tax, 'tax_diff' => $tax_diff, 'breakdown' => $breakdown];
