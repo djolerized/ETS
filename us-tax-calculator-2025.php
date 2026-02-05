@@ -2539,60 +2539,9 @@ JS;
             $breakdown[] = sprintf(__('Vermont non-resident: Taxable income = Total income (%s) - Vermont deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($vermont_deduction, 2), number_format($taxable, 2));
         }
 
-        // Apply Vermont tax brackets
-        // $0 to $3,825 -> 0.00%
-        // $3,826 to $53,225 -> 3.35%
-        // $53,226 to $123,525 -> 6.60%
-        // $123,526 to $253,525 -> 7.60%
-        // $253,526 or more -> 8.75%
-        $b1 = 3825;
-        $b2 = 53225;
-        $b3 = 123525;
-        $b4 = 253525;
-        $r1 = 0.0000;
-        $r2 = 0.0335;
-        $r3 = 0.0660;
-        $r4 = 0.0760;
-        $r5 = 0.0875;
-
-        $tax = 0;
-
-        if ($taxable <= $b1) {
-            $tax = $taxable * $r1;
-            $breakdown[] = sprintf(__('Tax bracket: $0 to $3,825 at 0.00%%: %s', 'ustc2025'), number_format($tax, 2));
-        } elseif ($taxable <= $b2) {
-            $tax_bracket2 = ($taxable - $b1) * $r2;
-            $tax = $tax_bracket2;
-            $breakdown[] = sprintf(__('Tax bracket: $0 to $3,825 at 0.00%%: %s', 'ustc2025'), number_format(0, 2));
-            $breakdown[] = sprintf(__('Tax bracket: $3,826 to $53,225 at 3.35%%: %s', 'ustc2025'), number_format($tax_bracket2, 2));
-        } elseif ($taxable <= $b3) {
-            $tax_bracket2 = ($b2 - $b1) * $r2;
-            $tax_bracket3 = ($taxable - $b2) * $r3;
-            $tax = $tax_bracket2 + $tax_bracket3;
-            $breakdown[] = sprintf(__('Tax bracket: $0 to $3,825 at 0.00%%: %s', 'ustc2025'), number_format(0, 2));
-            $breakdown[] = sprintf(__('Tax bracket: $3,826 to $53,225 at 3.35%%: %s', 'ustc2025'), number_format($tax_bracket2, 2));
-            $breakdown[] = sprintf(__('Tax bracket: $53,226 to $123,525 at 6.60%%: %s', 'ustc2025'), number_format($tax_bracket3, 2));
-        } elseif ($taxable <= $b4) {
-            $tax_bracket2 = ($b2 - $b1) * $r2;
-            $tax_bracket3 = ($b3 - $b2) * $r3;
-            $tax_bracket4 = ($taxable - $b3) * $r4;
-            $tax = $tax_bracket2 + $tax_bracket3 + $tax_bracket4;
-            $breakdown[] = sprintf(__('Tax bracket: $0 to $3,825 at 0.00%%: %s', 'ustc2025'), number_format(0, 2));
-            $breakdown[] = sprintf(__('Tax bracket: $3,826 to $53,225 at 3.35%%: %s', 'ustc2025'), number_format($tax_bracket2, 2));
-            $breakdown[] = sprintf(__('Tax bracket: $53,226 to $123,525 at 6.60%%: %s', 'ustc2025'), number_format($tax_bracket3, 2));
-            $breakdown[] = sprintf(__('Tax bracket: $123,526 to $253,525 at 7.60%%: %s', 'ustc2025'), number_format($tax_bracket4, 2));
-        } else {
-            $tax_bracket2 = ($b2 - $b1) * $r2;
-            $tax_bracket3 = ($b3 - $b2) * $r3;
-            $tax_bracket4 = ($b4 - $b3) * $r4;
-            $tax_bracket5 = ($taxable - $b4) * $r5;
-            $tax = $tax_bracket2 + $tax_bracket3 + $tax_bracket4 + $tax_bracket5;
-            $breakdown[] = sprintf(__('Tax bracket: $0 to $3,825 at 0.00%%: %s', 'ustc2025'), number_format(0, 2));
-            $breakdown[] = sprintf(__('Tax bracket: $3,826 to $53,225 at 3.35%%: %s', 'ustc2025'), number_format($tax_bracket2, 2));
-            $breakdown[] = sprintf(__('Tax bracket: $53,226 to $123,525 at 6.60%%: %s', 'ustc2025'), number_format($tax_bracket3, 2));
-            $breakdown[] = sprintf(__('Tax bracket: $123,526 to $253,525 at 7.60%%: %s', 'ustc2025'), number_format($tax_bracket4, 2));
-            $breakdown[] = sprintf(__('Tax bracket: $253,526 or more at 8.75%%: %s', 'ustc2025'), number_format($tax_bracket5, 2));
-        }
+        // Apply Vermont tax brackets from settings
+        $brackets = isset($settings['brackets']) ? $settings['brackets'] : [];
+        $tax = $this->apply_brackets($taxable, $brackets, $breakdown);
 
         $breakdown[] = sprintf(__('Vermont state tax computed: %s', 'ustc2025'), number_format($tax, 2));
 
