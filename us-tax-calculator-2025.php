@@ -2758,8 +2758,13 @@ JS;
         $flat_rate = isset($settings['flat_rate']) ? floatval($settings['flat_rate']) : 0;
         $personal_credit = isset($settings['ia_personal_credit']) ? floatval($settings['ia_personal_credit']) : 0;
 
-        $taxable = max(0, $gross - $federal_deduction);
-        $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - Federal deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($federal_deduction, 2), number_format($taxable, 2));
+        if ($residency === 'resident') {
+            $taxable = max(0, $gross - $withholding);
+            $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - State withholding (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($withholding, 2), number_format($taxable, 2));
+        } else {
+            $taxable = max(0, $gross - $federal_deduction);
+            $breakdown[] = sprintf(__('TaxableIncome = GrossIncome (%s) - Federal deduction (%s) = %s', 'ustc2025'), number_format($gross, 2), number_format($federal_deduction, 2), number_format($taxable, 2));
+        }
 
         $ia_tax = $taxable * ($flat_rate / 100);
         $breakdown[] = sprintf(__('Iowa tax = %s * %s%% = %s', 'ustc2025'), number_format($taxable, 2), $flat_rate, number_format($ia_tax, 2));
