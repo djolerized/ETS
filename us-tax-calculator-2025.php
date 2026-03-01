@@ -2708,37 +2708,9 @@ JS;
 
         $taxable = max(0, $gross - $personal_deduction);
 
-        // Apply Wisconsin tax brackets
-        $b1 = 14680;
-        $b2 = 29370;
-        $b3 = 323290;
-        $r1 = 0.035;
-        $r2 = 0.044;
-        $r3 = 0.053;
-        $r4 = 0.0765;
-
-        if ($taxable <= $b1) {
-            $tax = $taxable * $r1;
-            $breakdown[] = sprintf(__('Tax bracket: $0 to $14,680 at 3.50%% = %s * 3.50%% = %s', 'ustc2025'), number_format($taxable, 2), number_format($tax, 2));
-        } elseif ($taxable <= $b2) {
-            $tax = ($b1 * $r1) + (($taxable - $b1) * $r2);
-            $breakdown[] = sprintf(__('Tax bracket: $0 to $14,680 at 3.50%% = %s', 'ustc2025'), number_format($b1 * $r1, 2));
-            $breakdown[] = sprintf(__('Tax bracket: $14,680 to $29,370 at 4.40%% = (%s - %s) * 4.40%% = %s', 'ustc2025'), number_format($taxable, 2), number_format($b1, 2), number_format(($taxable - $b1) * $r2, 2));
-            $breakdown[] = sprintf(__('Total Wisconsin state tax = %s', 'ustc2025'), number_format($tax, 2));
-        } elseif ($taxable <= $b3) {
-            $tax = ($b1 * $r1) + (($b2 - $b1) * $r2) + (($taxable - $b2) * $r3);
-            $breakdown[] = sprintf(__('Tax bracket: $0 to $14,680 at 3.50%% = %s', 'ustc2025'), number_format($b1 * $r1, 2));
-            $breakdown[] = sprintf(__('Tax bracket: $14,680 to $29,370 at 4.40%% = %s', 'ustc2025'), number_format(($b2 - $b1) * $r2, 2));
-            $breakdown[] = sprintf(__('Tax bracket: $29,370 to $323,290 at 5.30%% = (%s - %s) * 5.30%% = %s', 'ustc2025'), number_format($taxable, 2), number_format($b2, 2), number_format(($taxable - $b2) * $r3, 2));
-            $breakdown[] = sprintf(__('Total Wisconsin state tax = %s', 'ustc2025'), number_format($tax, 2));
-        } else {
-            $tax = ($b1 * $r1) + (($b2 - $b1) * $r2) + (($b3 - $b2) * $r3) + (($taxable - $b3) * $r4);
-            $breakdown[] = sprintf(__('Tax bracket: $0 to $14,680 at 3.50%% = %s', 'ustc2025'), number_format($b1 * $r1, 2));
-            $breakdown[] = sprintf(__('Tax bracket: $14,680 to $29,370 at 4.40%% = %s', 'ustc2025'), number_format(($b2 - $b1) * $r2, 2));
-            $breakdown[] = sprintf(__('Tax bracket: $29,370 to $323,290 at 5.30%% = %s', 'ustc2025'), number_format(($b3 - $b2) * $r3, 2));
-            $breakdown[] = sprintf(__('Tax bracket: $323,290 or more at 7.65%% = (%s - %s) * 7.65%% = %s', 'ustc2025'), number_format($taxable, 2), number_format($b3, 2), number_format(($taxable - $b3) * $r4, 2));
-            $breakdown[] = sprintf(__('Total Wisconsin state tax = %s', 'ustc2025'), number_format($tax, 2));
-        }
+        // Apply Wisconsin tax brackets from settings
+        $brackets = isset($settings['brackets']) ? $settings['brackets'] : [];
+        $tax = $this->apply_brackets($taxable, $brackets, $breakdown);
 
         $tax = round($tax, 2);
         $tax_diff = $tax - $withholding;
