@@ -344,6 +344,7 @@ class USTaxCalculator2025
             'NJ' => [
                 'state_deduction' => 1000,
                 'personal_credit' => 0,
+                'full_refund_threshold' => 10000,
                 'calculation_mode' => 'progressive_brackets',
                 'flat_rate' => '',
                 'brackets' => [
@@ -1526,6 +1527,15 @@ JS;
         }
         if ($code === 'IL') {
             return $this->illinois_tax($gross, $withholding, $residency, $settings);
+        }
+
+        if ($code === 'NJ') {
+            $threshold = isset($settings['full_refund_threshold']) ? floatval($settings['full_refund_threshold']) : 10000;
+            if ($gross <= $threshold) {
+                $breakdown[] = sprintf(__('Total income (%s) <= NJ full refund threshold (%s); state tax set to 0.', 'ustc2025'),
+                    number_format($gross, 2), number_format($threshold, 2));
+                return ['tax' => 0, 'tax_diff' => -$withholding, 'breakdown' => $breakdown];
+            }
         }
 
         $personal_deduction = 0;
